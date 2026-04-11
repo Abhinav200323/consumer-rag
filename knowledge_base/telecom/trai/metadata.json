@@ -1,0 +1,12 @@
+{
+  "domain": "telecom",
+  "subdomain": "trai",
+  "jurisdiction": ["India", "Central"],
+  "date_range": {"from": "1997-01-01", "to": null},
+  "doc_types": ["Act", "Regulations", "Directions"],
+  "acts": ["Telecom Regulatory Authority of India Act 1997", "TRAI Consumer Regulations 2012"],
+  "sections": ["Service Quality Standards", "Billing Disputes", "Tariff Regulations", "Consumer Complaints", "Grievance Redressal"],
+  "description": "TRAI regulations on telecom consumer rights, service quality, billing disputes, and grievance redressal",
+  "indexed": false,
+  "last_indexed": null
+}

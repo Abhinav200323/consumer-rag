@@ -1,0 +1,7 @@
+{
+  "domain": "telecom",
+  "description": "Telecom regulatory framework and consumer rights in India",
+  "subdomains": ["trai"],
+  "jurisdiction": ["India"],
+  "indexed": false
+}

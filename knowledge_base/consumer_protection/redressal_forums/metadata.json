@@ -1,0 +1,12 @@
+{
+  "domain": "consumer_protection",
+  "subdomain": "redressal_forums",
+  "jurisdiction": ["India", "Central", "State", "District"],
+  "date_range": {"from": "2019-07-09", "to": null},
+  "doc_types": ["Act", "Rules"],
+  "acts": ["Consumer Protection Act 2019 - Chapter IV"],
+  "sections": ["District Commission", "State Commission", "National Commission", "Appeals", "Complaint Procedure", "Compensation"],
+  "description": "Consumer dispute redressal mechanisms including District, State, and National Consumer Commissions",
+  "indexed": false,
+  "last_indexed": null
+}

@@ -1,0 +1,7 @@
+{
+  "domain": "consumer_protection",
+  "description": "Laws and regulations governing consumer rights and protection in India",
+  "subdomains": ["general_provisions", "product_liability", "redressal_forums"],
+  "jurisdiction": ["India"],
+  "indexed": false
+}

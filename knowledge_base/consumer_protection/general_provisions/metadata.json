@@ -1,0 +1,31 @@
+{
+  "domain": "consumer_protection",
+  "subdomain": "general_provisions",
+  "jurisdiction": [
+    "India",
+    "Central"
+  ],
+  "date_range": {
+    "from": "2019-07-09",
+    "to": null
+  },
+  "doc_types": [
+    "Act",
+    "Notification"
+  ],
+  "acts": [
+    "Consumer Protection Act 2019"
+  ],
+  "sections": [
+    "Definitions",
+    "Consumer Rights",
+    "Consumer Duties",
+    "Unfair Trade Practices",
+    "Restrictive Trade Practices"
+  ],
+  "description": "Core provisions of the Consumer Protection Act 2019 including definitions, consumer rights, and unfair trade practices",
+  "indexed": true,
+  "last_indexed": "2026-04-11T18:46:51.980703+00:00",
+  "total_chunks": 89,
+  "total_docs": 2
+}

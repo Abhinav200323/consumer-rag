@@ -1,0 +1,7 @@
+{
+  "domain": "food_safety",
+  "description": "Food safety and standards regulations in India",
+  "subdomains": ["fssai"],
+  "jurisdiction": ["India"],
+  "indexed": false
+}

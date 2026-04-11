@@ -1,0 +1,12 @@
+{
+  "domain": "consumer_protection",
+  "subdomain": "product_liability",
+  "jurisdiction": ["India", "Central"],
+  "date_range": {"from": "2019-07-09", "to": null},
+  "doc_types": ["Act"],
+  "acts": ["Consumer Protection Act 2019 - Chapter VI"],
+  "sections": ["Product Liability", "Defective Products", "Manufacturer Liability", "Service Provider Liability"],
+  "description": "Product liability provisions under Consumer Protection Act 2019 (Chapter VI, Sections 82-87)",
+  "indexed": false,
+  "last_indexed": null
+}
