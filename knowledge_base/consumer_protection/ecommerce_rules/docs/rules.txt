@@ -1,0 +1,25 @@
+The Consumer Protection (E-Commerce) Rules, 2020
+
+1. Applicability: These rules apply to all e-commerce entities, including marketplace and inventory-based models, and even entities not established in India but offering goods or services to consumers in India.
+
+2. Duties of E-Commerce Entities:
+   - Appointment of a Nodal Officer in India. 
+   - Display of legal name, address, website, and contact details of the customer care and grievance officer.
+   - Establishment of a grievance redressal mechanism (acknowledgment within 48 hours, redressal within 1 month).
+   - Prohibition of unfair trade practices and price manipulation.
+
+3. Seller Duties on Marketplace:
+   - Mandatory disclosure of "Country of Origin".
+   - Clear information on refund, return, exchange, warranty, and delivery.
+   - Requirement to provide the grievance officer's details.
+
+4. Prohibited Acts:
+   - "Drip Pricing": Hiding costs until the end of the transaction.
+   - "Pre-ticked boxes" for additional services or consent.
+   - Falsely representing as a consumer to post reviews.
+
+5. Returns and Refunds:
+   - No e-commerce entity shall refuse a return or refund if the product is defective, deficient, delivered late, or does not match description.
+   - They cannot charge a cancellation fee unless similar charges are borne by the entity for unilateral cancellation by them.
+
+6. Liability: Marketplace entities are liable if they hold themselves out as the seller or if they fail to perform their due diligence on third-party sellers.

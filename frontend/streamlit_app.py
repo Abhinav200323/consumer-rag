@@ -230,6 +230,23 @@ with st.sidebar:
                                    help="Use Gemini to expand query into legal terms")
 
     st.divider()
+    st.markdown("### 📋 Case Context")
+    claim_value = st.number_input(
+        "Claim Value (₹)", 
+        min_value=0, 
+        value=0, 
+        step=10000,
+        help="The total value of goods/services + compensation claimed. Helps determine jurisdiction."
+    )
+    
+    language = st.selectbox(
+        "Preferred Language",
+        ["English", "Hindi", "Bengali", "Marathi", "Telugu", "Tamil", "Gujarati", "Urdu", "Kannada", "Odia", "Malayalam", "Punjabi"],
+        index=0,
+        help="The language in which you want to receive the legal advice."
+    )
+
+    st.divider()
     st.markdown("### 📚 Knowledge Base")
 
     if st.button("🔄 Refresh KB Status"):
@@ -374,7 +391,9 @@ with tab_query:
                         "query": prompt,
                         "filters": filters,
                         "use_llm_expansion": use_llm_expansion,
-                        "attached_image_b64": b64_to_send
+                        "attached_image_b64": b64_to_send,
+                        "claim_value": claim_value,
+                        "preferred_language": language
                     })
 
                 if "error" in result:

@@ -1,0 +1,82 @@
+{
+  "subdomain": "judgments",
+  "total_chunks": 5,
+  "chunks": [
+    {
+      "text": "Landmark Judgments in Indian Consumer Law\n\n1. Indian Medical Association v. V.P. Shantha (1995)\n   Core Principle: Medical services are covered under the Consumer Protection Act. Patients paying for treatment are \"consumers\". Only entirely free services at charitable or government hospitals are excluded.\n\n2. National Insurance Co. Ltd. v. Harsolia Motors (2023)\n   Core Principle: A commercial entity can be a \"consumer\" if the goods/services purchased are not for the purpose of profit generation (resale).",
+      "doc": "landmark_judgments.txt",
+      "page": 1,
+      "char_start": 0,
+      "char_end": 509,
+      "act": "Consumer Protection Act",
+      "section": null,
+      "clause": null,
+      "all_sections": [],
+      "all_clauses": [],
+      "chunk_id": 0
+    },
+    {
+      "text": "purchased are not for the purpose of profit generation (resale). The test is the \"purpose of purchase\", not the identity of the buyer.\n\n3. Spring Meadows Hospital v. Harjol Ahluwalia (1998)\n   Core Principle: The definition of a \"consumer\" include beneficiaries of a service (e.g., a child being treated while parents pay). Hospitals are vicariously liable for negligence of their staff.\n\n4. Ireo Grace Realtech Pvt. Ltd. v.",
+      "doc": "landmark_judgments.txt",
+      "page": 1,
+      "char_start": 445,
+      "char_end": 869,
+      "act": null,
+      "section": null,
+      "clause": null,
+      "all_sections": [],
+      "all_clauses": [],
+      "chunk_id": 1
+    },
+    {
+      "text": "negligence of their staff.\n\n4. Ireo Grace Realtech Pvt. Ltd. v. Abhishek Khanna (2021)\n   Core Principle: One-sided and unreasonable clauses in Apartment Buyer's Agreements constitute \"unfair trade practices\". Developers cannot force buyers to accept unfair terms.\n\n5. Maruti Suzuki India Ltd. v. Tapan Kumar Das (2021)\n   Core Principle: Manufacturers are liable for product defects even if they have dealers. Liability cannot be shifted away from the manufacturer for manufacturing defects.\n\n6.",
+      "doc": "landmark_judgments.txt",
+      "page": 1,
+      "char_start": 805,
+      "char_end": 1302,
+      "act": null,
+      "section": null,
+      "clause": null,
+      "all_sections": [],
+      "all_clauses": [],
+      "chunk_id": 2
+    },
+    {
+      "text": "hifted away from the manufacturer for manufacturing defects.\n\n6. Nizam Institute of Medical Sciences v. Prasanth S. Dhananka (2009)\n   Core Principle: Established high standards for \"Damages\" in medical negligence cases, emphasizing compensation that balances the loss of life/health with reasonable financial recovery.\n\n7. New India Assurance Co. Ltd. v.",
+      "doc": "landmark_judgments.txt",
+      "page": 1,
+      "char_start": 1238,
+      "char_end": 1593,
+      "act": null,
+      "section": null,
+      "clause": null,
+      "all_sections": [],
+      "all_clauses": [],
+      "chunk_id": 3
+    },
+    {
+      "text": "asonable financial recovery.\n\n7. New India Assurance Co. Ltd. v. Hilli Multipurpose Cold Storage (2020)\n   Core Principle: The 30+15 day time limit for the opposite party to file a written version in a consumer case is mandatory and CANNOT be extended by the forum.",
+      "doc": "landmark_judgments.txt",
+      "page": 1,
+      "char_start": 1529,
+      "char_end": 1794,
+      "act": null,
+      "section": null,
+      "clause": null,
+      "all_sections": [],
+      "all_clauses": [],
+      "chunk_id": 4
+    }
+  ],
+  "page_index": {
+    "landmark_judgments.txt::p1": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "indexed_at": "2026-04-12T04:28:53.986760+00:00"
+}

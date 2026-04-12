@@ -1,0 +1,22 @@
+Landmark Judgments in Indian Consumer Law
+
+1. Indian Medical Association v. V.P. Shantha (1995)
+   Core Principle: Medical services are covered under the Consumer Protection Act. Patients paying for treatment are "consumers". Only entirely free services at charitable or government hospitals are excluded.
+
+2. National Insurance Co. Ltd. v. Harsolia Motors (2023)
+   Core Principle: A commercial entity can be a "consumer" if the goods/services purchased are not for the purpose of profit generation (resale). The test is the "purpose of purchase", not the identity of the buyer.
+
+3. Spring Meadows Hospital v. Harjol Ahluwalia (1998)
+   Core Principle: The definition of a "consumer" include beneficiaries of a service (e.g., a child being treated while parents pay). Hospitals are vicariously liable for negligence of their staff.
+
+4. Ireo Grace Realtech Pvt. Ltd. v. Abhishek Khanna (2021)
+   Core Principle: One-sided and unreasonable clauses in Apartment Buyer's Agreements constitute "unfair trade practices". Developers cannot force buyers to accept unfair terms.
+
+5. Maruti Suzuki India Ltd. v. Tapan Kumar Das (2021)
+   Core Principle: Manufacturers are liable for product defects even if they have dealers. Liability cannot be shifted away from the manufacturer for manufacturing defects.
+
+6. Nizam Institute of Medical Sciences v. Prasanth S. Dhananka (2009)
+   Core Principle: Established high standards for "Damages" in medical negligence cases, emphasizing compensation that balances the loss of life/health with reasonable financial recovery.
+
+7. New India Assurance Co. Ltd. v. Hilli Multipurpose Cold Storage (2020)
+   Core Principle: The 30+15 day time limit for the opposite party to file a written version in a consumer case is mandatory and CANNOT be extended by the forum.

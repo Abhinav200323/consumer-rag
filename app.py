@@ -56,6 +56,8 @@ class QueryRequest(BaseModel):
     filters: QueryFilters = QueryFilters()
     use_llm_expansion: bool = True
     attached_image_b64: Optional[str] = None
+    claim_value: float = 0
+    preferred_language: str = "English"
 
 
 class IngestRequest(BaseModel):
@@ -91,6 +93,8 @@ async def query(request: QueryRequest):
             filters=request.filters.model_dump(exclude_none=True),
             use_llm_expansion=request.use_llm_expansion,
             attached_image_b64=request.attached_image_b64,
+            claim_value=request.claim_value,
+            preferred_language=request.preferred_language
         )
         return result
     except Exception as e:

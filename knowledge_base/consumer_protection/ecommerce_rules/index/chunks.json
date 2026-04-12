@@ -1,0 +1,82 @@
+{
+  "subdomain": "ecommerce_rules",
+  "total_chunks": 5,
+  "chunks": [
+    {
+      "text": "The Consumer Protection (E-Commerce) Rules, 2020\n\n1. Applicability: These rules apply to all e-commerce entities, including marketplace and inventory-based models, and even entities not established in India but offering goods or services to consumers in India.\n\n2. Duties of E-Commerce Entities:\n   - Appointment of a Nodal Officer in India.",
+      "doc": "rules.txt",
+      "page": 1,
+      "char_start": 0,
+      "char_end": 341,
+      "act": null,
+      "section": null,
+      "clause": null,
+      "all_sections": [],
+      "all_clauses": [],
+      "chunk_id": 0
+    },
+    {
+      "text": "Commerce Entities:\n   - Appointment of a Nodal Officer in India. \n   - Display of legal name, address, website, and contact details of the customer care and grievance officer.\n   - Establishment of a grievance redressal mechanism (acknowledgment within 48 hours, redressal within 1 month).\n   - Prohibition of unfair trade practices and price manipulation.\n\n3.",
+      "doc": "rules.txt",
+      "page": 1,
+      "char_start": 277,
+      "char_end": 637,
+      "act": null,
+      "section": null,
+      "clause": null,
+      "all_sections": [],
+      "all_clauses": [],
+      "chunk_id": 1
+    },
+    {
+      "text": "rohibition of unfair trade practices and price manipulation.\n\n3. Seller Duties on Marketplace:\n   - Mandatory disclosure of \"Country of Origin\".\n   - Clear information on refund, return, exchange, warranty, and delivery.\n   - Requirement to provide the grievance officer's details.\n\n4. Prohibited Acts:\n   - \"Drip Pricing\": Hiding costs until the end of the transaction.\n   - \"Pre-ticked boxes\" for additional services or consent.\n   - Falsely representing as a consumer to post reviews.\n\n5.",
+      "doc": "rules.txt",
+      "page": 1,
+      "char_start": 573,
+      "char_end": 1064,
+      "act": null,
+      "section": null,
+      "clause": null,
+      "all_sections": [],
+      "all_clauses": [],
+      "chunk_id": 2
+    },
+    {
+      "text": "nt.\n   - Falsely representing as a consumer to post reviews.\n\n5. Returns and Refunds:\n   - No e-commerce entity shall refuse a return or refund if the product is defective, deficient, delivered late, or does not match description.\n   - They cannot charge a cancellation fee unless similar charges are borne by the entity for unilateral cancellation by them.\n\n6.",
+      "doc": "rules.txt",
+      "page": 1,
+      "char_start": 1000,
+      "char_end": 1361,
+      "act": null,
+      "section": null,
+      "clause": null,
+      "all_sections": [],
+      "all_clauses": [],
+      "chunk_id": 3
+    },
+    {
+      "text": "are borne by the entity for unilateral cancellation by them.\n\n6. Liability: Marketplace entities are liable if they hold themselves out as the seller or if they fail to perform their due diligence on third-party sellers.",
+      "doc": "rules.txt",
+      "page": 1,
+      "char_start": 1297,
+      "char_end": 1517,
+      "act": null,
+      "section": null,
+      "clause": null,
+      "all_sections": [],
+      "all_clauses": [],
+      "chunk_id": 4
+    }
+  ],
+  "page_index": {
+    "rules.txt::p1": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "indexed_at": "2026-04-12T04:28:53.606491+00:00"
+}

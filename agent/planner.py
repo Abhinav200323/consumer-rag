@@ -14,6 +14,7 @@ Orchestrates the full query pipeline:
 
 import asyncio
 import logging
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -23,11 +24,29 @@ from config import TOP_K_RETRIEVAL, TOP_K_RERANK, KB_PATH
 log = logging.getLogger(__name__)
 
 
+def is_simple_greeting(text: str) -> bool:
+    """Check if the user input is a simple greeting or very short conversational filler."""
+    greetings = {
+        "hi", "hello", "hey", "hola", "namaste", "greetings", 
+        "good morning", "good afternoon", "good evening",
+        "who are you", "what can you do", "help", "buddy"
+    }
+    cleaned = re.sub(r'[^\w\s]', '', text.lower()).strip()
+    # If it's 1-3 words and matches common greetings
+    words = cleaned.split()
+    if len(words) <= 3:
+        if any(g in cleaned for g in greetings) or not cleaned:
+            return True
+    return False
+
+
 async def run_query(
     question: str,
     filters: dict | None = None,
     use_llm_expansion: bool = True,
     attached_image_b64: str | None = None,
+    claim_value: float = 0,
+    preferred_language: str = "English"
 ) -> dict[str, Any]:
     """
     Full agentic RAG pipeline. Returns structured response with answer,
@@ -36,6 +55,33 @@ async def run_query(
     filters = filters or {}
     timing: dict[str, float] = {}
     trace: list[str] = []   # human-readable reasoning trace for UI
+
+    # ── Step 0: Greeting & Personality Check ──────────────────────────────────
+    import re
+    if is_simple_greeting(question):
+        from llm.gemini_client import generate_text
+        # Use a skeleton context just for the language/system metadata
+        from retrieval.legal_logic import get_legal_check_context
+        legal_context = get_legal_check_context(claim_value, preferred_language)
+        
+        t0 = time.perf_counter()
+        # Call Gemini directly for a warm, non-RAG greeting
+        raw_answer = await generate_text(f"GREETING: {question}\n\n{legal_context}", max_tokens=512)
+        timing["llm_s"] = round(time.perf_counter() - t0, 3)
+        trace.append("👋 **Simple greeting detected** — skipped legal retrieval for a faster response.")
+        
+        return {
+            "answer": raw_answer,
+            "reasoning_steps": [],
+            "verified_citations": [],
+            "citation_confidence": 1.0,
+            "unverified_sections": [],
+            "source_chunks": [],
+            "subfolders_searched": [],
+            "query_expansion": None,
+            "timing": timing,
+            "trace": trace,
+        }
 
     # ── Step 1: Query Expansion ───────────────────────────────────────────────
     t0 = time.perf_counter()
@@ -119,7 +165,11 @@ async def run_query(
         context_parts.append(
             f"--- Chunk {i}{section_info}{ref_tag} {doc_info} ---\n{chunk['text']}"
         )
-    context_str = "\n\n".join(context_parts)
+    
+    # Inject advanced legal logic context
+    from retrieval.legal_logic import get_legal_check_context
+    legal_context = get_legal_check_context(claim_value, preferred_language)
+    context_str = "\n\n".join(context_parts) + "\n\n" + legal_context
 
     # ── Step 8: Gemini Reasoning ──────────────────────────────────────────────
     t0 = time.perf_counter()
