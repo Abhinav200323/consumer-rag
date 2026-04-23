@@ -29,10 +29,130 @@ from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent))
-from config import KB_PATH, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDING_MODEL
+from config import KB_PATH, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDING_MODEL, GEMINI_API_KEY
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
+
+
+# ── Gemini Metadata Extraction ────────────────────────────────────────────────
+
+def extract_document_metadata(full_text: str, filename: str) -> dict:
+    """
+    Use Gemini to extract structured, easy-to-understand metadata from a document.
+    Sends the first ~4000 chars to keep costs low and speed high.
+    Returns a dict with title, summary, document_type, primary_acts, etc.
+    Falls back to regex-based extraction if Gemini fails.
+    """
+    if not GEMINI_API_KEY:
+        log.warning("No GEMINI_API_KEY — skipping AI metadata extraction, using regex fallback.")
+        return _regex_fallback_metadata(full_text, filename)
+
+    sample_text = full_text[:4000]
+
+    for attempt in range(2):  # retry once on failure
+        try:
+            from llm.gemini_client import generate_text_sync
+            from llm.prompts import METADATA_EXTRACTION_PROMPT
+
+            prompt = METADATA_EXTRACTION_PROMPT.format(filename=filename, text=sample_text)
+            raw = generate_text_sync(prompt, max_tokens=1024)
+
+            metadata = _parse_json_response(raw)
+            if metadata:
+                metadata["extraction_method"] = "gemini"
+                log.info(f"    ✨ Gemini metadata: {metadata.get('title', filename)}")
+                return metadata
+
+            if attempt == 0:
+                log.warning(f"    ⚠️ Gemini JSON parse failed for {filename}, retrying...")
+                continue
+
+        except Exception as e:
+            log.warning(f"    ⚠️ Metadata extraction attempt {attempt+1} failed for {filename}: {e}")
+
+    # Final fallback: regex-based extraction from raw text
+    log.info(f"    📝 Using regex fallback for {filename}")
+    return _regex_fallback_metadata(full_text, filename)
+
+
+def _parse_json_response(raw: str) -> dict | None:
+    """Try multiple strategies to extract valid JSON from Gemini's response."""
+    cleaned = raw.strip()
+
+    # Strategy 1: Strip markdown code fences
+    if cleaned.startswith("```"):
+        # Remove opening fence (```json or ```)
+        first_newline = cleaned.find("\n")
+        if first_newline != -1:
+            cleaned = cleaned[first_newline + 1:]
+        else:
+            cleaned = cleaned[3:]
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3]
+    cleaned = cleaned.strip()
+
+    # Strategy 2: Try direct parse
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # Strategy 3: Find JSON object in the response using brace matching
+    start = cleaned.find("{")
+    if start != -1:
+        depth = 0
+        for i in range(start, len(cleaned)):
+            if cleaned[i] == "{":
+                depth += 1
+            elif cleaned[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(cleaned[start:i+1])
+                    except json.JSONDecodeError:
+                        break
+
+    return None
+
+
+def _regex_fallback_metadata(full_text: str, filename: str) -> dict:
+    """Extract basic metadata from raw text using regex when Gemini fails."""
+    text = full_text[:6000]
+
+    # Extract Acts
+    acts = list(dict.fromkeys(_ACT_RE.findall(text)))
+    # Extract Sections
+    sections = [f"Section {s}" for s in dict.fromkeys(_SECTION_RE.findall(text))]
+
+    # Guess document type from filename and content
+    fname_lower = filename.lower()
+    if "act" in fname_lower:
+        doc_type = "Act"
+    elif "rule" in fname_lower:
+        doc_type = "Rules"
+    elif "notification" in fname_lower or "gazette" in text.lower()[:500]:
+        doc_type = "Notification"
+    elif "judgment" in fname_lower or "court" in fname_lower:
+        doc_type = "Judgment"
+    else:
+        doc_type = "Act" if acts else "Document"
+
+    # Generate a basic summary from first ~300 chars
+    first_para = text[:300].replace("\n", " ").strip()
+    summary = f"Document '{filename}' covering {', '.join(acts[:2]) if acts else 'Indian consumer law'}."
+
+    return {
+        "title": filename.replace(".pdf", "").replace(".docx", "").replace("_", " ").title(),
+        "summary": summary,
+        "document_type": doc_type,
+        "primary_acts": acts[:5],
+        "key_sections": sections[:10],
+        "jurisdiction": "All India",
+        "key_takeaways": [f"Covers {len(sections)} sections across {len(acts)} act(s)"] if sections else [],
+        "effective_date": None,
+        "extraction_method": "regex_fallback",
+    }
 
 # ── Document Parsers ──────────────────────────────────────────────────────────
 
@@ -240,14 +360,23 @@ def index_subfolder(subfolder: Path, model: SentenceTransformer):
     log.info(f"Indexing: {subfolder}")
     log.info(f"Found {len(supported)} document(s)")
 
-    # Parse + chunk all documents
+    # Parse + chunk all documents + extract Gemini metadata per doc
     all_chunks: list[dict] = []
     page_index: dict[str, list[int]] = {}  # doc → list of chunk indices per page
+    doc_metadata: dict[str, dict] = {}     # filename → Gemini-extracted metadata
 
     for doc_path in supported:
         log.info(f"  Parsing: {doc_path.name}")
         pages = load_document(doc_path)
         doc_chunks_start = len(all_chunks)
+
+        # Collect full text for metadata extraction
+        full_text = "\n".join(p["text"] for p in pages)
+
+        # ── Gemini metadata extraction ────────────────────────────────────
+        log.info(f"    🤖 Extracting metadata via Gemini...")
+        doc_meta = extract_document_metadata(full_text, doc_path.name)
+        doc_metadata[doc_path.name] = doc_meta
 
         for page_data in pages:
             page_chunks = chunk_page(
@@ -280,28 +409,90 @@ def index_subfolder(subfolder: Path, model: SentenceTransformer):
         pickle.dump(bm25, f)
     log.info(f"  Saved: index/bm25.pkl")
 
-    # ── 3. Chunk registry (with page index baked in) ──────────────────────────
+    # ── 3. Chunk registry (with page index + doc metadata baked in) ───────────
     registry: dict[str, Any] = {
         "subdomain": subfolder.name,
         "total_chunks": len(all_chunks),
         "chunks": all_chunks,
         "page_index": page_index,          # doc::page → [chunk_ids]
+        "doc_metadata": doc_metadata,      # filename → Gemini-extracted metadata
         "embedding_model": EMBEDDING_MODEL,
         "indexed_at": datetime.now(timezone.utc).isoformat(),
     }
     with open(index_dir / "chunks.json", "w", encoding="utf-8") as f:
         json.dump(registry, f, ensure_ascii=False, indent=2)
-    log.info(f"  Saved: index/chunks.json ({len(all_chunks)} chunks)")
+    log.info(f"  Saved: index/chunks.json ({len(all_chunks)} chunks, {len(doc_metadata)} docs with metadata)")
 
-    # Update metadata
+    # ── 4. Update metadata.json — ALWAYS populate structural + Gemini fields ──
+    # Derive domain/subdomain from folder structure (e.g. knowledge_base/consumer_protection/general_provisions)
+    try:
+        rel = subfolder.relative_to(KB_PATH)
+        parts = list(rel.parts)
+        if len(parts) >= 2:
+            metadata["domain"] = parts[0]       # e.g. "consumer_protection"
+            metadata["subdomain"] = parts[1]    # e.g. "general_provisions"
+        elif len(parts) == 1:
+            metadata["domain"] = parts[0]
+            metadata["subdomain"] = parts[0]
+    except ValueError:
+        metadata.setdefault("domain", subfolder.parent.name)
+        metadata.setdefault("subdomain", subfolder.name)
+
     metadata["indexed"] = True
     metadata["last_indexed"] = datetime.now(timezone.utc).isoformat()
     metadata["total_chunks"] = len(all_chunks)
     metadata["total_docs"] = len(supported)
+
+    # Always populate from Gemini extraction (overwrite stale data)
+    all_acts = []
+    all_sections = []
+    all_takeaways = []
+    all_doc_types = []
+    all_jurisdictions = []
+    all_summaries = []
+
+    for dm in doc_metadata.values():
+        all_acts.extend(dm.get("primary_acts", []))
+        all_sections.extend(dm.get("key_sections", []))
+        all_takeaways.extend(dm.get("key_takeaways", []))
+        if dm.get("document_type"):
+            all_doc_types.append(dm["document_type"])
+        if dm.get("jurisdiction"):
+            all_jurisdictions.append(dm["jurisdiction"])
+        if dm.get("summary"):
+            all_summaries.append(dm["summary"])
+
+    # Always overwrite these fields with fresh Gemini data (deduped)
+    if all_acts:
+        metadata["acts"] = list(dict.fromkeys(all_acts))
+    if all_sections:
+        metadata["sections"] = list(dict.fromkeys(all_sections))
+    if all_takeaways:
+        metadata["key_takeaways"] = all_takeaways
+    if all_doc_types:
+        metadata["doc_types"] = list(dict.fromkeys(all_doc_types))
+    if all_jurisdictions:
+        metadata["jurisdiction"] = list(dict.fromkeys(all_jurisdictions))
+    if all_summaries:
+        # Combine all document summaries into one description
+        metadata["description"] = " | ".join(all_summaries)
+
+    # Store per-document metadata for quick lookup
+    metadata["documents"] = {
+        fname: {
+            "title": dm.get("title", fname),
+            "summary": dm.get("summary", ""),
+            "document_type": dm.get("document_type", "Unknown"),
+            "key_takeaways": dm.get("key_takeaways", []),
+        }
+        for fname, dm in doc_metadata.items()
+    }
+
     with open(metadata_path, "w") as f:
-        json.dump(metadata, f, indent=2)
+        json.dump(metadata, f, indent=2, ensure_ascii=False)
 
     log.info(f"✓ Indexed {subfolder.name} ({len(supported)} docs, {len(all_chunks)} chunks)")
+    log.info(f"  📋 Metadata: domain={metadata.get('domain')}, acts={metadata.get('acts', [])}, jurisdiction={metadata.get('jurisdiction', [])}")
 
 
 def find_all_subfolders(kb_path: Path) -> list[Path]:

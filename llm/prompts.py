@@ -70,3 +70,36 @@ A user has requested a draft legal document based on their specific situation.
 4. Ensure the draft maintains a firm but professional legal tone, citing relevant Indian legal provisions if conceptually applicable based on standard consumer law.
 5. Provide the output in clean Markdown.
 """
+
+METADATA_EXTRACTION_PROMPT = """You are a legal document analyst. Read the following text from an Indian legal document and extract structured metadata.
+
+## Document Filename
+{filename}
+
+## Document Text (Sample)
+{text}
+
+## Instructions
+Return ONLY valid JSON (no markdown fences, no explanation) with these fields:
+{{
+  "title": "A clear, human-readable title for this document",
+  "summary": "2-3 sentence plain-English summary a layperson can understand",
+  "document_type": "One of: Act, Rules, Regulations, Judgment, Notification, Guidelines, Order, Circular",
+  "primary_acts": ["List of Acts referenced, e.g. Consumer Protection Act 2019"],
+  "key_sections": ["List of important section numbers, e.g. Section 34, Section 69"],
+  "jurisdiction": "One of: District, State, National, Central, All India",
+  "key_takeaways": ["3-5 bullet points of what a consumer should know from this document"],
+  "effective_date": "Date the law/rule came into force (YYYY-MM-DD) or null if not found"
+}}
+"""
+
+INTENT_CLASSIFICATION_PROMPT = """Classify the following user message into exactly one category.
+
+Categories:
+- "greeting" — Simple hello, hi, hey, good morning, who are you, etc.
+- "legal" — Anything about Indian consumer law, legal rights, complaints, refunds, defective products, consumer forums, compensation, legal notices, acts, sections, or any legal situation
+- "general" — Everything else (general knowledge, math, weather, jokes, etc.)
+
+User message: {query}
+
+Reply with ONLY one word: greeting, legal, or general"""

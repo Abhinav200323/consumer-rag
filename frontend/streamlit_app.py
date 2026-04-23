@@ -1,13 +1,13 @@
 """
-frontend/streamlit_app.py — Streamlit UI for Consumer Law Agentic RAG
+frontend/streamlit_app.py — Premium Chat UI for Consumer Law Agentic RAG
 
+A polished, chat-first conversational interface designed for product demos.
 Features:
-  - Query panel with Gemini-powered legal reasoning
-  - Sidebar filters (jurisdiction, domain, doc type, date)
-  - Reasoning steps viewer (expandable)
-  - Source citations with page numbers
-  - Reference traversal tree
-  - Document browser & upload ingestion tab
+  - Chat-first layout with st.chat_message / st.chat_input
+  - Smart intent routing: legal answers show expandable reasoning, general answers are clean
+  - Session memory for multi-turn conversations
+  - Dark glassmorphism theme with animations
+  - Sidebar: filters, KB status, tools (Draft, Upload)
 """
 
 import requests
@@ -16,10 +16,11 @@ from pathlib import Path
 import json
 import uuid
 import base64
+import time as _time
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Consumer Law AI — Agentic RAG",
+    page_title="Consumer Law AI — Legal Buddy",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -27,130 +28,249 @@ st.set_page_config(
 
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
-
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 API_BASE = "http://localhost:8000"
 
-# ── Custom CSS ─────────────────────────────────────────────────────────────────
+# ── Premium CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-    --bg-primary: #0d1117;
-    --bg-secondary: #161b22;
-    --bg-card: #1c2330;
-    --accent-gold: #d4a017;
-    --accent-blue: #58a6ff;
-    --accent-green: #3fb950;
-    --accent-purple: #bc8cff;
-    --accent-orange: #f0883e;
-    --text-primary: #e6edf3;
-    --text-muted: #8b949e;
-    --border: #30363d;
+    --bg-primary: #0a0f1a;
+    --bg-secondary: #111827;
+    --bg-card: #1a2234;
+    --bg-glass: rgba(26, 34, 52, 0.7);
+    --accent-gold: #f59e0b;
+    --accent-amber: #d97706;
+    --accent-blue: #3b82f6;
+    --accent-cyan: #06b6d4;
+    --accent-green: #10b981;
+    --accent-purple: #8b5cf6;
+    --accent-rose: #f43f5e;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: #1e293b;
+    --border-light: #334155;
 }
 
-html, body, [class*="css"]  {
-    font-family: 'Inter', sans-serif;
+html, body, [class*="css"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background-color: var(--bg-primary);
     color: var(--text-primary);
 }
 
-.stApp { background-color: var(--bg-primary); }
-
-/* Header */
-.hero-title {
-    font-size: 2.6rem; font-weight: 700;
-    background: linear-gradient(135deg, #d4a017 0%, #f0c040 40%, #58a6ff 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    margin-bottom: 0.3rem;
-}
-.hero-sub {
-    color: var(--text-muted); font-size: 1rem; margin-bottom: 2rem;
+.stApp {
+    background: linear-gradient(180deg, #0a0f1a 0%, #0f172a 50%, #0a0f1a 100%);
 }
 
-/* Cards */
-.card {
+/* ── Chat Container ── */
+.stChatMessage {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* ── Header ── */
+.app-header {
+    text-align: center;
+    padding: 1.5rem 0 1rem 0;
+    margin-bottom: 0.5rem;
+}
+.app-header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 30%, #3b82f6 70%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+.app-header p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0.3rem 0 0 0;
+}
+
+/* ── Glass Card ── */
+.glass-card {
+    background: var(--bg-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 0.8rem;
+    transition: all 0.3s ease;
+}
+.glass-card:hover {
+    border-color: var(--border-light);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+}
+
+/* ── Answer Bubble ── */
+.answer-bubble {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 16px;
+    padding: 1.2rem 1.4rem;
+    line-height: 1.75;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    animation: fadeSlideIn 0.4s ease-out;
+}
+.general-bubble {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+/* ── Confidence Badge ── */
+.confidence-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    margin-top: 0.6rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Metrics Row ── */
+.metrics-row {
+    display: flex;
+    gap: 0.8rem;
+    margin: 0.8rem 0;
+    flex-wrap: wrap;
+}
+.metric-chip {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.2rem 1.4rem;
-    margin-bottom: 1rem;
+    border-radius: 10px;
+    padding: 0.5rem 0.9rem;
+    text-align: center;
+    min-width: 80px;
 }
-.card-gold { border-left: 4px solid var(--accent-gold); }
-.card-blue { border-left: 4px solid var(--accent-blue); }
-.card-green { border-left: 4px solid var(--accent-green); }
-.card-purple { border-left: 4px solid var(--accent-purple); }
-.card-orange { border-left: 4px solid var(--accent-orange); }
-
-/* Step badge */
-.step-badge {
-    display: inline-block;
-    background: linear-gradient(135deg, #d4a017, #b8860b);
-    color: #000; font-weight: 700; font-size: 0.75rem;
-    padding: 0.15rem 0.5rem; border-radius: 6px; margin-right: 0.4rem;
+.metric-chip .val {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+    display: block;
+}
+.metric-chip .lbl {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-/* Citation tag */
+/* ── Citation Tag ── */
 .citation-tag {
     display: inline-block;
-    background: #1f3550; color: #58a6ff;
-    border: 1px solid #2d4a6e;
-    font-size: 0.75rem; padding: 0.15rem 0.5rem;
-    border-radius: 4px; margin: 0.15rem;
+    background: rgba(59, 130, 246, 0.12);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    font-size: 0.72rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 6px;
+    margin: 0.15rem 0.1rem;
     font-family: 'JetBrains Mono', monospace;
 }
 
-/* Metric mini */
-.metric-mini {
+/* ── Trace Step ── */
+.trace-step {
     background: var(--bg-secondary);
-    border-radius: 8px; padding: 0.6rem 1rem;
-    text-align: center; border: 1px solid var(--border);
-}
-.metric-mini .val { font-size: 1.4rem; font-weight: 700; color: var(--accent-gold); }
-.metric-mini .lbl { font-size: 0.72rem; color: var(--text-muted); }
-
-/* Answer box */
-.answer-box {
-    background: #0d1f12;
-    border: 1px solid #1a4a26;
-    border-radius: 10px; padding: 1.4rem;
-    line-height: 1.7; color: var(--text-primary);
-    font-size: 0.95rem;
+    border-left: 3px solid var(--accent-cyan);
+    padding: 0.35rem 0.9rem;
+    margin: 0.2rem 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-secondary);
 }
 
-/* Sidebar styling */
-section[data-testid="stSidebar"] { background-color: var(--bg-secondary); }
+/* ── Quick Action Chips ── */
+.chip-container {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 0.8rem 0 1.5rem 0;
+}
+
+/* ── Sidebar ── */
+section[data-testid="stSidebar"] {
+    background: var(--bg-secondary) !important;
+    border-right: 1px solid var(--border);
+}
 section[data-testid="stSidebar"] .stSelectbox [data-baseweb="select"],
-section[data-testid="stSidebar"] .stTextInput input {
-    background-color: var(--bg-card);
-    border-color: var(--border);
-    color: var(--text-primary);
+section[data-testid="stSidebar"] .stTextInput input,
+section[data-testid="stSidebar"] .stNumberInput input {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border) !important;
+    color: var(--text-primary) !important;
 }
 
-/* Trace step */
-.trace-line {
-    background: var(--bg-secondary);
-    border-left: 3px solid var(--accent-blue);
-    padding: 0.3rem 0.8rem;
-    margin: 0.25rem 0;
-    border-radius: 0 6px 6px 0;
-    font-size: 0.85rem;
-    font-family: 'JetBrains Mono', monospace;
-}
-
+/* ── Buttons ── */
 .stButton > button {
-    background: linear-gradient(135deg, #d4a017, #b8860b) !important;
-    color: #000 !important; font-weight: 700 !important;
-    border: none !important; border-radius: 8px !important;
-    padding: 0.6rem 2rem !important; width: 100% !important;
-    transition: all 0.2s ease !important;
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: #000 !important;
+    font-weight: 600 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 0.55rem 1.5rem !important;
+    transition: all 0.25s ease !important;
+    letter-spacing: 0.01em !important;
 }
-.stButton > button:hover { opacity: 0.9 !important; transform: translateY(-1px) !important; }
+.stButton > button:hover {
+    opacity: 0.9 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3) !important;
+}
 
-hr { border-color: var(--border); }
+/* ── Typing animation ── */
+@keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+.typing-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent-gold);
+    border-radius: 50%;
+    animation: pulse 1.2s infinite ease-in-out;
+    margin: 0 2px;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ── Sidebar section headers ── */
+.sidebar-section {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin: 1rem 0 0.4rem 0;
+}
+
+hr { border-color: var(--border) !important; }
+
+/* Hide default streamlit elements for cleaner look */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+header { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -195,23 +315,35 @@ def format_citation(c: dict) -> str:
         parts.append(c["doc"])
     if c.get("page"):
         parts.append(f"p.{c['page']}")
-    return " | ".join(parts) if parts else "Unknown source"
+    return " · ".join(parts) if parts else "Unknown source"
 
 
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.markdown("## ⚖️ Consumer Law RAG")
-    st.markdown("*Agentic AI Legal Assistant*")
+    # Branding
+    st.markdown("### ⚖️ Legal Buddy")
+    st.caption("AI Consumer Law Assistant")
     st.divider()
 
+    # Backend status
     backend_ok = check_backend()
     if backend_ok:
-        st.success("🟢 Backend connected")
+        st.success("● Backend connected", icon="🟢")
     else:
-        st.error("🔴 Backend offline\n\nRun: `uvicorn app:app --reload`")
+        st.error("● Backend offline — run `uvicorn app:app --reload`", icon="🔴")
 
-    st.markdown("### 🔍 Search Filters")
+    # ── Session Controls ──
+    st.markdown('<div class="sidebar-section">💬 Session</div>', unsafe_allow_html=True)
+    if st.button("🔄 New Chat", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.session_id = str(uuid.uuid4())
+        st.rerun()
+
+    st.divider()
+
+    # ── Search Filters ──
+    st.markdown('<div class="sidebar-section">🔍 Filters</div>', unsafe_allow_html=True)
     jurisdiction = st.selectbox(
         "Jurisdiction",
         ["All", "India", "Central", "State", "District"],
@@ -226,296 +358,67 @@ with st.sidebar:
         "Document Type",
         ["All", "Act", "Regulations", "Notification", "Directions", "Rules"],
     )
-    use_llm_expansion = st.toggle("🔮 AI Query Expansion", value=True,
+    use_llm_expansion = st.toggle("AI Query Expansion", value=True,
                                    help="Use Gemini to expand query into legal terms")
 
     st.divider()
-    st.markdown("### 📋 Case Context")
+
+    # ── Case Context ──
+    st.markdown('<div class="sidebar-section">📋 Case Context</div>', unsafe_allow_html=True)
     claim_value = st.number_input(
-        "Claim Value (₹)", 
-        min_value=0, 
-        value=0, 
+        "Claim Value (₹)",
+        min_value=0,
+        value=0,
         step=10000,
-        help="The total value of goods/services + compensation claimed. Helps determine jurisdiction."
+        help="Helps determine the correct forum jurisdiction"
     )
-    
     language = st.selectbox(
-        "Preferred Language",
+        "Response Language",
         ["English", "Hindi", "Bengali", "Marathi", "Telugu", "Tamil", "Gujarati", "Urdu", "Kannada", "Odia", "Malayalam", "Punjabi"],
         index=0,
-        help="The language in which you want to receive the legal advice."
     )
 
     st.divider()
-    st.markdown("### 📚 Knowledge Base")
 
-    if st.button("🔄 Refresh KB Status"):
-        st.session_state["kb_data"] = api_get("/knowledge-base")
+    # ── Tools ──
+    st.markdown('<div class="sidebar-section">🛠️ Tools</div>', unsafe_allow_html=True)
 
-    if "kb_data" not in st.session_state:
-        st.session_state["kb_data"] = api_get("/knowledge-base")
+    with st.expander("📝 Draft Legal Document"):
+        draft_type = st.selectbox("Document Type", [
+            "Legal Notice to Seller/Service Provider",
+            "Consumer Complaint (District Commission)",
+            "RTI Application",
+            "Grievance Letter to Nodal Officer"
+        ], key="draft_type_select")
 
-    kb_data = st.session_state.get("kb_data", {})
-    entries = kb_data.get("entries", [])
+        draft_facts = st.text_area(
+            "Facts of your case",
+            placeholder="E.g., I bought an AC on 10th March from ABC Electronics...",
+            height=100,
+            key="draft_facts_input"
+        )
 
-    if entries:
-        for entry in entries:
-            idx = "✅" if entry.get("indexed") else "⬜"
-            st.markdown(f"{idx} **{entry.get('subdomain', entry.get('domain', '?'))}**")
-            if entry.get("acts"):
-                st.caption(f"  {', '.join(entry['acts'][:2])}")
-    else:
-        st.caption("No knowledge base data (backend offline?)")
-
-
-# ── Main Tabs ──────────────────────────────────────────────────────────────────
-
-st.markdown('<p class="hero-title">⚖️ Consumer Law AI</p>', unsafe_allow_html=True)
-st.markdown('<p class="hero-sub">Agentic RAG powered by hybrid vector + BM25 search and Gemini legal reasoning</p>', unsafe_allow_html=True)
-
-tab_query, tab_draft, tab_games, tab_ingest, tab_about = st.tabs([
-    "🔍 Ask a Legal Question", 
-    "📝 Draft Document", 
-    "🎮 Learning Games", 
-    "📤 Upload Documents", 
-    "ℹ️ About"
-])
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 1 — QUERY
-# ══════════════════════════════════════════════════════════════════════════════
-with tab_query:
-    st.markdown("**💡 Try a sample question:**")
-    sample_questions = [
-        "Can I get a refund for a defective product I bought online?",
-        "How do I file a complaint against a company for unfair trade practices?",
-        "What is the time limit to file a consumer complaint?",
-        "Can I claim compensation for mental agony caused by service deficiency?",
-    ]
-    
-    cols = st.columns(len(sample_questions))
-    selected_sample = None
-    for i, (col, q) in enumerate(zip(cols, sample_questions)):
-        if col.button(f"Q{i+1}", help=q, key=f"sample_{i}"):
-            selected_sample = q
-            
-    st.divider()
-    
-    # ── Chat history renderer ──
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"], unsafe_allow_html=True)
-            if msg["role"] == "assistant" and "result_data" in msg:
-                res = msg["result_data"]
-                timing = res.get("timing", {})
-                citations = res.get("verified_citations", [])
-                steps = res.get("reasoning_steps", [])
-                chunks = res.get("source_chunks", [])
-                conf = res.get("citation_confidence", 1.0)
-
-                with st.expander("📋 View Reasoning & Legal Context", expanded=False):
-                    m1, m2, m3, m4, m5 = st.columns(5)
-                    with m1: st.markdown(f'<div class="metric-mini"><div class="val">{len(citations)}</div><div class="lbl">Citations</div></div>', unsafe_allow_html=True)
-                    with m2: st.markdown(f'<div class="metric-mini"><div class="val">{len(steps)}</div><div class="lbl">Reasoning Steps</div></div>', unsafe_allow_html=True)
-                    with m3: st.markdown(f'<div class="metric-mini"><div class="val">{len(chunks)}</div><div class="lbl">Source Chunks</div></div>', unsafe_allow_html=True)
-                    with m4:
-                        total_t = sum(timing.values())
-                        st.markdown(f'<div class="metric-mini"><div class="val">{total_t:.1f}s</div><div class="lbl">Total Time</div></div>', unsafe_allow_html=True)
-                    with m5:
-                        pct = int(conf * 100)
-                        st.markdown(f'<div class="metric-mini"><div class="val">{pct}%</div><div class="lbl">Confidence</div></div>', unsafe_allow_html=True)
-                    
-                    st.divider()
-                    
-                    if steps:
-                        st.markdown("#### 🧠 Step-by-Step Reasoning")
-                        for step in steps:
-                            st.markdown(f"**Step {step['step']} — {step['title']}**\n\n{step['content']}")
-                            
-                    st.divider()
-                    col_cit, col_src = st.columns([1, 1])
-                    with col_cit:
-                        st.markdown("#### 📎 Verified Citations")
-                        for c in citations:
-                            st.info(f"**{format_citation(c)}**\n\n{c.get('text_snippet', '')}")
-                    with col_src:
-                        st.markdown("#### 📄 Source Chunks")
-                        for i, ch in enumerate(chunks[:4], 1):
-                            st.caption(f"Chunk {i} — {ch.get('doc', '?')} p.{ch.get('page', '?')}")
-                            st.text(ch.get("text", "")[:200] + "...")
-
-    # ── Inline Attacher ──
-    uploaded_tmp = st.file_uploader("📎 Attach Document or Image to Chat (PDF, DOCX, TXT, PNG, JPG)", type=["pdf", "docx", "txt", "md", "png", "jpg", "jpeg"], key="chat_upload")
-    if uploaded_tmp and st.session_state.get("last_uploaded") != uploaded_tmp.name:
-        with st.spinner(f"Indexing {uploaded_tmp.name} permanently into your secure session context..."):
-             files = {"file": (uploaded_tmp.name, uploaded_tmp.getvalue(), uploaded_tmp.type)}
-             data = {"subfolder_path": f"temp/{st.session_state.session_id}"}
-             try:
-                 requests.post(f"{API_BASE}/ingest/upload", files=files, data=data)
-                 st.session_state["last_uploaded"] = uploaded_tmp.name
-                 if uploaded_tmp.name.lower().endswith(('.png', '.jpg', '.jpeg')):
-                     b64 = base64.b64encode(uploaded_tmp.getvalue()).decode()
-                     st.session_state["attached_image_b64"] = f"data:{uploaded_tmp.type};base64,{b64}"
-                 st.success(f"Successfully attached {uploaded_tmp.name} to conversation.")
-             except Exception as e:
-                 st.error(f"Failed to attach: {e}")
-
-    # ── Input Handler ──
-    prompt = st.chat_input("Ask a legal question... (e.g. Can I get a refund on a defective product?)")
-    
-    if selected_sample:
-        prompt = selected_sample
-
-    if prompt:
-        if not backend_ok:
-            st.error("Backend is offline. Start it with: `uvicorn app:app --reload`")
-        else:
-            b64_to_send = st.session_state.pop("attached_image_b64", None)
-            
-            # Append & render user message immediately
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
-                if b64_to_send:
-                    st.image(b64_to_send, width=200)
-
-            # Generate response
-            with st.chat_message("assistant"):
-                with st.spinner("🤖 Searching knowledge base and structuring response..."):
-                    filters = {"session_id": st.session_state.session_id}
-                    if jurisdiction != "All": filters["jurisdiction"] = jurisdiction
-                    if domain != "All": filters["domain"] = domain
-                    if doc_type != "All": filters["doc_type"] = doc_type
-
-                    result = api_post("/query", {
-                        "query": prompt,
-                        "filters": filters,
-                        "use_llm_expansion": use_llm_expansion,
-                        "attached_image_b64": b64_to_send,
-                        "claim_value": claim_value,
-                        "preferred_language": language
-                    })
-
-                if "error" in result:
-                    st.error(f"❌ Error: {result['error']}")
-                else:
-                    ans = result["answer"]
-                    st.markdown(f'<div class="answer-box"> \n{ans} \n </div>', unsafe_allow_html=True)
-                    # Cache message natively
+        if st.button("✍️ Generate Draft", use_container_width=True, key="draft_button"):
+            if draft_facts.strip() and backend_ok:
+                with st.spinner("Drafting..."):
+                    res = api_post("/draft_document", {"document_type": draft_type, "facts": draft_facts})
+                if "error" not in res:
+                    st.session_state.messages.append({"role": "user", "content": f"Draft a {draft_type}"})
                     st.session_state.messages.append({
-                        "role": "assistant", 
-                        "content": f'<div class="answer-box"> \n{ans} \n </div>', 
-                        "result_data": result
+                        "role": "assistant",
+                        "content": res["draft"],
+                        "intent": "general"
                     })
                     st.rerun()
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 2 — DRAFTING
-# ══════════════════════════════════════════════════════════════════════════════
-with tab_draft:
-    st.markdown("## 📝 Legal Document Drafting")
-    st.markdown("Generate formal Indian legal drafts automatically from your case facts.")
-    
-    doc_type = st.selectbox("Select Document Type", [
-        "Legal Notice to Seller/Service Provider",
-        "Consumer Complaint (District Commission)",
-        "RTI Application", 
-        "Grievance Letter to Nodal Officer"
-    ])
-    
-    facts = st.text_area(
-        "Enter the facts of your case", 
-        placeholder="E.g., I bought an AC on 10th March from ABC Electronics. It stopped cooling on 12th March. The dealer refused to replace or repair it despite warranty...",
-        height=150
-    )
-    
-    if st.button("✍️ Generate Legal Draft", type="primary"):
-        if not facts.strip():
-            st.warning("Please provide the facts of your case to generate a draft.")
-        elif not backend_ok:
-            st.error("Backend is not running.")
-        else:
-            with st.spinner("⚖️ Applying Indian Consumer Law and drafting your document..."):
-                res = api_post("/draft_document", {"document_type": doc_type, "facts": facts})
-                if "error" in res:
-                    st.error(res["error"])
                 else:
-                    st.success("Draft generated successfully! Note: Always review with a legal professional.")
-                    st.markdown("### Your Draft Document")
-                    st.info("Copy the text below to your editor.")
-                    st.markdown(res["draft"])
-                    
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 3 — GAMES
-# ══════════════════════════════════════════════════════════════════════════════
-with tab_games:
-    st.markdown("## 🎮 Consumer Law Learning Games")
-    st.markdown("Test your knowledge of Indian Consumer Law with these quick interactive exercises!")
-    
-    st.divider()
-    
-    st.markdown("### Game 1: Is it a Violation?")
-    st.markdown("Read the scenario and decide if it violates the Indian Consumer Protection Act.")
-    
-    # Simple state handling for Game 1
-    if "g1_answered" not in st.session_state:
-        st.session_state.g1_answered = False
-        
-    scenario = "A popular restaurant automatically adds a 'Service Charge' of 10% to your bill without asking you. They insist you must pay it."
-    st.info(f"**Scenario:** {scenario}")
-    
-    col_yes, col_no = st.columns(2)
-    with col_yes:
-        if st.button("⚖️ Yes, it's a violation!"):
-            st.session_state.g1_answered = "yes"
-    with col_no:
-        if st.button("🤷 No, it's legal."):
-            st.session_state.g1_answered = "no"
-            
-    if st.session_state.g1_answered == "yes":
-        st.success("**Correct!** The CCPA (Central Consumer Protection Authority) guidelines clearly state that levying service charge automatically or by default is an 'unfair trade practice'.")
-    elif st.session_state.g1_answered == "no":
-        st.error("**Incorrect.** It is a violation! According to CCPA guidelines, forcing a consumer to pay a service charge is considered an 'unfair trade practice' under the Consumer Protection Act, 2019.")
+                    st.error(res["error"])
 
-    st.divider()
-    
-    st.markdown("### Game 2: Time Limit Trivia")
-    st.markdown("Deadlines are critical in law. Can you guess the correct timeline?")
-    
-    if "g2_answered" not in st.session_state:
-        st.session_state.g2_answered = False
-        
-    q = "**What is the maximum time limit to file a complaint in the District Consumer Forum from the date the issue occurred?**"
-    ans = st.radio(q, ["1 Year", "2 Years", "3 Years", "No Time Limit"])
-    
-    if st.button("Check Answer 🎯"):
-        st.session_state.g2_answered = ans
-        
-    if st.session_state.g2_answered:
-        if st.session_state.g2_answered == "2 Years":
-            st.success("**Correct!** Under Section 69 of the Consumer Protection Act, 2019, you must file a complaint within **2 years** from the date the cause of action arises.")
-        else:
-            st.error(f"**Incorrect.** You chose {st.session_state.g2_answered}, but the correct answer is **2 Years** (Section 69 of the Act).")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 4 — INGEST
-# ══════════════════════════════════════════════════════════════════════════════
-with tab_ingest:
-    st.markdown("## 📤 Upload & Index Documents")
-    st.markdown("Upload legal documents (PDF, DOCX, TXT) to the knowledge base. The system will automatically parse, chunk, build vector + BM25 indexes with page tracking.")
-
-    col_up, col_trig = st.columns([1, 1])
-
-    with col_up:
-        st.markdown("### Upload a Document (Knowledge Base Registry)")
-        
+    with st.expander("📤 Upload Document"):
         uploaded = st.file_uploader(
-            "Choose file (PDF, DOCX, TXT, PNG)",
+            "Add to Knowledge Base",
             type=["pdf", "docx", "txt", "md", "png", "jpg"],
-            key="doc_upload_admin"
+            key="doc_upload_sidebar"
         )
-        
         subfolder_options = [
             "consumer_protection/general_provisions",
             "consumer_protection/product_liability",
@@ -523,124 +426,230 @@ with tab_ingest:
             "food_safety/fssai",
             "telecom/trai",
         ]
-        target_subfolder = st.selectbox("Target subfolder", subfolder_options)
-        admin_pass = st.text_input("Admin Password", type="password")
+        target_subfolder = st.selectbox("Target", subfolder_options, key="upload_target")
+        admin_pass = st.text_input("Admin Password", type="password", key="upload_pass")
 
-        if st.button("⬆️ Upload & Index globally"):
-            if not uploaded:
-                st.warning("Please select a file first.")
-            elif not admin_pass:
-                st.warning("Admin password lies strictly required for permanent registry.")
-            elif not backend_ok:
-                st.error("Backend is not running.")
-            else:
-                with st.spinner(f"Uploading and indexing {uploaded.name}..."):
+        if st.button("⬆️ Upload & Index", use_container_width=True, key="upload_button"):
+            if uploaded and admin_pass and backend_ok:
+                with st.spinner(f"Uploading {uploaded.name}..."):
                     files = {"file": (uploaded.name, uploaded.getvalue(), uploaded.type)}
-                    data = {"subfolder_path": target_subfolder}
-                    if admin_pass:
-                        data["admin_password"] = admin_pass
-                        
+                    data = {"subfolder_path": target_subfolder, "admin_password": admin_pass}
                     try:
-                        r = requests.post(
-                            f"{API_BASE}/ingest/upload",
-                            files=files, data=data, timeout=180
-                        )
+                        r = requests.post(f"{API_BASE}/ingest/upload", files=files, data=data, timeout=180)
                         if r.status_code == 200:
-                            st.success(f"✅ {uploaded.name} uploaded and indexed securely!")
-                            st.session_state["kb_data"] = api_get("/knowledge-base")
+                            st.success(f"✅ {uploaded.name} indexed!")
                         else:
                             st.error(f"Error: {r.text}")
                     except Exception as e:
                         st.error(str(e))
 
-    with col_trig:
-        st.markdown("### Re-index Existing Subfolder")
-        st.markdown("Trigger full re-indexing of a subfolder that already has documents.")
-        reindex_target = st.selectbox(
-            "Select subfolder to re-index",
-            subfolder_options,
-            key="reindex_select"
-        )
-        if st.button("🔄 Re-index Subfolder"):
-            if not backend_ok:
-                st.error("Backend is not running.")
-            else:
-                with st.spinner(f"Indexing {reindex_target}..."):
-                    result = api_post("/ingest", {"subfolder_path": reindex_target})
-                if "error" in result:
-                    st.error(result["error"])
-                else:
-                    st.success(f"✅ Indexed {reindex_target}")
-                    st.code(result.get("output", ""), language="bash")
-                    st.session_state["kb_data"] = api_get("/knowledge-base")
-
     st.divider()
-    st.markdown("### 📊 Knowledge Base Status")
+
+    # ── KB Status ──
+    st.markdown('<div class="sidebar-section">📚 Knowledge Base</div>', unsafe_allow_html=True)
+    if "kb_data" not in st.session_state:
+        st.session_state["kb_data"] = api_get("/knowledge-base")
     kb_data = st.session_state.get("kb_data", {})
     entries = kb_data.get("entries", [])
     if entries:
-        rows = []
-        for e in entries:
-            rows.append({
-                "Domain": e.get("domain", ""),
-                "Subdomain": e.get("subdomain", ""),
-                "Indexed": "✅" if e.get("indexed") else "⬜",
-                "Chunks": e.get("total_chunks", 0) or 0,
-                "Docs": e.get("total_docs", 0) or 0,
-                "Last Indexed": e.get("last_indexed", "Never")[:19] if e.get("last_indexed") else "Never",
-            })
-        st.dataframe(rows, use_container_width=True)
+        for entry in entries:
+            idx = "✅" if entry.get("indexed") else "⬜"
+            name = entry.get("subdomain", entry.get("domain", "?"))
+            chunks = entry.get("total_chunks", 0) or 0
+            st.caption(f"{idx} **{name}** — {chunks} chunks")
     else:
-        st.info("Start the backend and refresh to see knowledge base status.")
+        st.caption("No KB data available")
+    if st.button("Refresh", key="kb_refresh", use_container_width=True):
+        st.session_state["kb_data"] = api_get("/knowledge-base")
+        st.rerun()
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 5 — ABOUT
-# ══════════════════════════════════════════════════════════════════════════════
-with tab_about:
-    st.markdown("## ℹ️ About this System")
+
+# ── Main Chat Area ──────────────────────────────────────────────────────────────
+
+# Header
+st.markdown("""
+<div class="app-header">
+    <h1>⚖️ Legal Buddy</h1>
+    <p>Your AI-powered Indian Consumer Law Assistant · Agentic RAG with Gemini</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Welcome message if no conversation yet
+if not st.session_state.messages:
     st.markdown("""
-    ### 🏗️ Architecture — 3-Layer Agentic RAG
+    <div class="glass-card" style="text-align: center; max-width: 700px; margin: 0 auto 1.5rem auto;">
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">👋 <strong>Welcome!</strong> I'm your Legal Buddy.</p>
+        <p style="color: var(--text-secondary); font-size: 0.88rem; margin: 0;">
+            Ask me anything about Indian consumer law — refunds, complaints, compensation, legal notices,
+            or just chat! I'll search through official legal documents and give you clear, actionable advice.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    #### 🗂️ Layer 1 — Retrieval
-    | Component | Description |
-    |---|---|
-    | **Hybrid Search** | Dense FAISS vector + sparse BM25 fused via RRF |
-    | **Query Expansion** | Legal synonym mapping + Gemini LLM expansion |
-    | **Metadata Filtering** | Jurisdiction / domain / doc-type subfolder selection |
-    | **Page Indexing** | Every chunk tagged with page number for exact citation |
-    | **Structured Index** | Act → Section → Clause navigation tree |
+    # Sample question chips
+    sample_questions = [
+        "Can I get a refund for a defective product?",
+        "How to file a consumer complaint?",
+        "Time limit for consumer complaints?",
+        "Compensation for mental agony?",
+    ]
+    cols = st.columns(len(sample_questions))
+    for i, (col, q) in enumerate(zip(cols, sample_questions)):
+        if col.button(q, key=f"sample_{i}", use_container_width=True):
+            st.session_state["_pending_sample"] = q
+            st.rerun()
 
-    #### 🧩 Layer 2 — Context
-    | Component | Description |
-    |---|---|
-    | **Compression** | Boilerplate removal + near-duplicate deduplication |
-    | **Re-ranking** | Cross-encoder (query, chunk) scoring |
-    | **Reference Traversal** | Follows "See Section X" links recursively |
 
-    #### 🤖 Layer 3 — Reasoning (Agentic)
-    | Component | Description |
-    |---|---|
-    | **Planner** | 9-step orchestration pipeline |
-    | **Gemini Reasoning** | Structured CoT: Facts → Law → Analysis → Conclusion |
-    | **Citation Verification** | Cross-checks every cited section against retrieved context |
+# ── Render Chat History ────────────────────────────────────────────────────────
 
-    ---
-    ### 🚀 Quick Start
-    ```bash
-    # 1. Install dependencies
-    pip install -r requirements.txt
+for msg in st.session_state.messages:
+    avatar = "👤" if msg["role"] == "user" else "⚖️"
+    with st.chat_message(msg["role"], avatar=avatar):
+        intent = msg.get("intent", "legal")
 
-    # 2. Set your Gemini API key
-    cp .env.example .env
-    # Edit .env and add your GEMINI_API_KEY
+        if msg["role"] == "user":
+            st.markdown(msg["content"])
+        else:
+            # Render answer in styled bubble
+            bubble_class = "answer-bubble" if intent == "legal" else "answer-bubble general-bubble"
+            st.markdown(f'<div class="{bubble_class}">\n\n{msg["content"]}\n\n</div>', unsafe_allow_html=True)
 
-    # 3. Index the knowledge base
-    python ingest.py --all
+            # For legal responses: show confidence badge + optional reasoning expander
+            if intent == "legal" and "result_data" in msg:
+                res = msg["result_data"]
+                conf = res.get("citation_confidence", 0)
+                pct = int(conf * 100)
+                st.markdown(f'<span class="confidence-badge">✓ {pct}% citation confidence</span>', unsafe_allow_html=True)
 
-    # 4. Start the backend (Terminal 1)
-    uvicorn app:app --reload --port 8000
+                # Expandable reasoning & sources (hidden by default)
+                with st.expander("🔍 View reasoning & sources", expanded=False):
+                    timing = res.get("timing", {})
+                    citations = res.get("verified_citations", [])
+                    steps = res.get("reasoning_steps", [])
+                    chunks = res.get("source_chunks", [])
+                    trace_items = res.get("trace", [])
 
-    # 5. Start the frontend (Terminal 2)
-    streamlit run frontend/streamlit_app.py --server.port 8501
-    ```
-    """)
+                    # Metrics row
+                    st.markdown(f"""
+                    <div class="metrics-row">
+                        <div class="metric-chip"><span class="val">{len(citations)}</span><span class="lbl">Citations</span></div>
+                        <div class="metric-chip"><span class="val">{len(chunks)}</span><span class="lbl">Sources</span></div>
+                        <div class="metric-chip"><span class="val">{sum(timing.values()):.1f}s</span><span class="lbl">Total Time</span></div>
+                        <div class="metric-chip"><span class="val">{pct}%</span><span class="lbl">Confidence</span></div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # Pipeline trace
+                    if trace_items:
+                        st.markdown("**Pipeline Trace**")
+                        for t in trace_items:
+                            st.markdown(f'<div class="trace-step">{t}</div>', unsafe_allow_html=True)
+
+                    # Citations
+                    if citations:
+                        st.markdown("**Verified Citations**")
+                        for c in citations:
+                            st.markdown(f'<span class="citation-tag">{format_citation(c)}</span>', unsafe_allow_html=True)
+
+                    # Source chunks
+                    if chunks:
+                        st.markdown("**Source Chunks**")
+                        for i_ch, ch in enumerate(chunks[:4], 1):
+                            with st.container():
+                                st.caption(f"Chunk {i_ch} · {ch.get('doc', '?')} · p.{ch.get('page', '?')}")
+                                st.text(ch.get("text", "")[:200] + "...")
+
+
+# ── Inline File Attacher ───────────────────────────────────────────────────────
+
+uploaded_tmp = st.file_uploader(
+    "📎 Attach a document or image to your message",
+    type=["pdf", "docx", "txt", "md", "png", "jpg", "jpeg"],
+    key="chat_upload",
+    label_visibility="collapsed",
+)
+if uploaded_tmp and st.session_state.get("last_uploaded") != uploaded_tmp.name:
+    with st.spinner(f"Indexing {uploaded_tmp.name} into session context..."):
+        files = {"file": (uploaded_tmp.name, uploaded_tmp.getvalue(), uploaded_tmp.type)}
+        data = {"subfolder_path": f"temp/{st.session_state.session_id}"}
+        try:
+            requests.post(f"{API_BASE}/ingest/upload", files=files, data=data)
+            st.session_state["last_uploaded"] = uploaded_tmp.name
+            if uploaded_tmp.name.lower().endswith(('.png', '.jpg', '.jpeg')):
+                b64 = base64.b64encode(uploaded_tmp.getvalue()).decode()
+                st.session_state["attached_image_b64"] = f"data:{uploaded_tmp.type};base64,{b64}"
+            st.success(f"✅ Attached {uploaded_tmp.name}")
+        except Exception as e:
+            st.error(f"Failed: {e}")
+
+
+# ── Chat Input Handler ────────────────────────────────────────────────────────
+
+# Check for pending sample question
+prompt = st.chat_input("Ask me anything about consumer law...")
+
+if st.session_state.get("_pending_sample"):
+    prompt = st.session_state.pop("_pending_sample")
+
+if prompt:
+    if not backend_ok:
+        st.error("Backend is offline. Start it with: `uvicorn app:app --reload`")
+    else:
+        b64_to_send = st.session_state.pop("attached_image_b64", None)
+
+        # Append & render user message
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user", avatar="👤"):
+            st.markdown(prompt)
+            if b64_to_send:
+                st.image(b64_to_send, width=200)
+
+        # Generate response
+        with st.chat_message("assistant", avatar="⚖️"):
+            # Typing indicator
+            typing_placeholder = st.empty()
+            typing_placeholder.markdown(
+                '<div style="padding: 0.5rem;"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>',
+                unsafe_allow_html=True
+            )
+
+            # Build request
+            filters = {"session_id": st.session_state.session_id}
+            if jurisdiction != "All": filters["jurisdiction"] = jurisdiction
+            if domain != "All": filters["domain"] = domain
+            if doc_type != "All": filters["doc_type"] = doc_type
+
+            result = api_post("/query", {
+                "query": prompt,
+                "filters": filters,
+                "use_llm_expansion": use_llm_expansion,
+                "attached_image_b64": b64_to_send,
+                "claim_value": claim_value,
+                "preferred_language": language
+            })
+
+            typing_placeholder.empty()
+
+            if "error" in result:
+                st.error(f"❌ {result['error']}")
+            else:
+                ans = result["answer"]
+                intent = result.get("intent", "legal")
+                bubble_class = "answer-bubble" if intent == "legal" else "answer-bubble general-bubble"
+
+                st.markdown(f'<div class="{bubble_class}">\n\n{ans}\n\n</div>', unsafe_allow_html=True)
+
+                # Show confidence badge for legal responses
+                if intent == "legal":
+                    conf = result.get("citation_confidence", 0)
+                    pct = int(conf * 100)
+                    st.markdown(f'<span class="confidence-badge">✓ {pct}% citation confidence</span>', unsafe_allow_html=True)
+
+                # Store in session
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": ans,
+                    "intent": intent,
+                    "result_data": result if intent == "legal" else None,
+                })
+                st.rerun()

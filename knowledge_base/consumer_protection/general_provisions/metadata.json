@@ -1,31 +1,36 @@
 {
   "domain": "consumer_protection",
   "subdomain": "general_provisions",
-  "jurisdiction": [
-    "India",
-    "Central"
-  ],
-  "date_range": {
-    "from": "2019-07-09",
-    "to": null
-  },
-  "doc_types": [
-    "Act",
-    "Notification"
-  ],
+  "indexed": true,
+  "last_indexed": "2026-04-23T19:12:54.621224+00:00",
+  "total_chunks": 58,
+  "total_docs": 1,
   "acts": [
-    "Consumer Protection Act 2019"
+    "B  of the Indian Telegraph Act, 1885",
+    "Consumer Protection Act",
+    "Indian Telegraph Act, 1885"
   ],
   "sections": [
-    "Definitions",
-    "Consumer Rights",
-    "Consumer Duties",
-    "Unfair Trade Practices",
-    "Restrictive Trade Practices"
+    "Section 7B"
   ],
-  "description": "Core provisions of the Consumer Protection Act 2019 including definitions, consumer rights, and unfair trade practices",
-  "indexed": true,
-  "last_indexed": "2026-04-12T04:28:53.958893+00:00",
-  "total_chunks": 89,
-  "total_docs": 2
+  "key_takeaways": [
+    "Covers 1 sections across 3 act(s)"
+  ],
+  "doc_types": [
+    "Act"
+  ],
+  "jurisdiction": [
+    "All India"
+  ],
+  "description": "Document 'indian consumer.pdf' covering B  of the Indian Telegraph Act, 1885, Consumer Protection Act.",
+  "documents": {
+    "indian consumer.pdf": {
+      "title": "Indian Consumer",
+      "summary": "Document 'indian consumer.pdf' covering B  of the Indian Telegraph Act, 1885, Consumer Protection Act.",
+      "document_type": "Act",
+      "key_takeaways": [
+        "Covers 1 sections across 3 act(s)"
+      ]
+    }
+  }
 }

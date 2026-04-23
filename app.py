@@ -94,7 +94,8 @@ async def query(request: QueryRequest):
             use_llm_expansion=request.use_llm_expansion,
             attached_image_b64=request.attached_image_b64,
             claim_value=request.claim_value,
-            preferred_language=request.preferred_language
+            preferred_language=request.preferred_language,
+            session_id=request.filters.session_id,
         )
         return result
     except Exception as e:
