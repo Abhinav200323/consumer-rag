@@ -1,0 +1,59 @@
+INFO:     Will watch for changes in these directories: ['/Users/abhin/Desktop/major2']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [57020] using WatchFiles
+INFO:     Started server process [57024]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+🚀 CONFIG: Loading model 'models/gemini-flash-latest'
+🔑 CONFIG: API Key loaded (ends in ...uldo)
+INFO:     127.0.0.1:64189 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64198 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64200 - "GET /knowledge-base HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64205 - "GET /health HTTP/1.1" 200 OK
+INFO: Step 0: Determining intent...
+INFO: Step 0: Intent detected: 'direct' (0.0s)
+INFO: Pipeline: Using DIRECT path (no database search)...
+INFO:     [GEMINI CHAT USAGE] Input: 231 | Output: 99 | Total: 551
+INFO: Pipeline: DIRECT response generated in 3.628s
+INFO:     127.0.0.1:64207 - "POST /query HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64214 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64219 - "GET /health HTTP/1.1" 200 OK
+INFO: Step 0: Determining intent...
+INFO:     [GEMINI USAGE] Input: 357 | Output: 0 | Total: 364
+ERROR: Gemini generation error: Invalid operation: The `response.text` quick accessor requires the response to contain a valid `Part`, but none were returned. Please check the `candidate.safety_ratings` to determine if the response was blocked.
+WARNING: Intent classification failed (Invalid operation: The `response.text` quick accessor requires the response to contain a valid `Part`, but none were returned. Please check the `candidate.safety_ratings` to determine if the response was blocked.), defaulting to 'rag'
+INFO: Step 0: Intent detected: 'rag' (1.083s)
+INFO: Pipeline: Using RAG path (starting retrieval flow)...
+INFO: Step 1: Expanding user query with legal terms...
+INFO:     [GEMINI USAGE] Input: 359 | Output: 4 | Total: 505
+INFO: Step 2: Identifying relevant folders via metadata...
+INFO: Step 3: Performing hybrid retrieval (Vector + BM25)...
+INFO: Loading faiss.
+INFO: Successfully loaded faiss.
+I0424 21:30:19.413471 7962814 ev_poll_posix.cc:593] FD from fork parent still in poll list: fd(21, generation: 1)
+INFO: Loading embedding model: sentence-transformers/all-MiniLM-L6-v2
+INFO: Use pytorch device_name: mps
+INFO: Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00,  4.82it/s]Batches: 100%|██████████| 1/1 [00:00<00:00,  4.82it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 104.78it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 108.16it/s]
+INFO: Step 4: Compressing context and removing boilerplate...
+INFO: Step 5: Re-ranking chunks for precision and diversity...
+INFO: Loading cross-encoder: cross-encoder/ms-marco-MiniLM-L-6-v2
+INFO: Use pytorch device: mps
+INFO: Cross-encoder loaded.
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00,  5.97it/s]Batches: 100%|██████████| 1/1 [00:00<00:00,  5.96it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 22.07it/s]
+INFO: Step 6: Traversing internal legal citations...
+INFO: Step 8: Generating legal reasoning via Gemini...
+INFO:     [GEMINI CHAT USAGE] Input: 2028 | Output: 435 | Total: 3907
+INFO: Step 9: Verifying citations against source documents...
+INFO:     127.0.0.1:64221 - "POST /query HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64225 - "GET /health HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [57024]
+INFO:     Stopping reloader process [57020]
+/opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

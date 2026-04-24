@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 async def classify_intent(query: str) -> str:
     """
-    Classify user intent as 'greeting', 'legal', or 'general'.
+    Classify user intent as 'rag' (requires database search) or 'direct' (general/greeting/basic info).
     Uses a fast Gemini call for smart routing.
     Falls back to rule-based detection if Gemini fails.
     """
@@ -42,8 +42,8 @@ async def classify_intent(query: str) -> str:
     cleaned = re.sub(r'[^\w\s]', '', query.lower()).strip()
     words = cleaned.split()
     if len(words) <= 3 and any(g in cleaned for g in greetings):
-        return "greeting"
-
+        return "direct"
+        
     # Use Gemini for nuanced classification
     try:
         from llm.gemini_client import generate_text
@@ -56,13 +56,13 @@ async def classify_intent(query: str) -> str:
         log.info(f"Intent classification: '{result.strip().lower()}' ({elapsed:.2f}s)")
 
         intent = result.strip().lower()
-        if intent in ("greeting", "legal", "general"):
+        if intent in ("rag", "direct"):
             return intent
-        # If response doesn't match expected values, default to legal
-        return "legal"
+        # If response doesn't match expected values, default to rag
+        return "rag"
     except Exception as e:
-        log.warning(f"Intent classification failed ({e}), defaulting to 'legal'")
-        return "legal"
+        log.warning(f"Intent classification failed ({e}), defaulting to 'rag'")
+        return "rag"
 
 
 async def run_query(
@@ -84,43 +84,16 @@ async def run_query(
     trace: list[str] = []   # human-readable reasoning trace for UI
 
     # ── Step 0: Intent Classification ─────────────────────────────────────────
+    log.info("Step 0: Determining intent...")
     t0 = time.perf_counter()
     intent = await classify_intent(question)
     timing["intent_s"] = round(time.perf_counter() - t0, 3)
     trace.append(f"🧠 **Intent detected**: `{intent}`")
+    log.info(f"Step 0: Intent detected: '{intent}' ({timing['intent_s']}s)")
 
-    # ── Handle GREETING intent ────────────────────────────────────────────────
-    if intent == "greeting":
-        from llm.gemini_client import generate_text
-        from retrieval.legal_logic import get_legal_check_context
-        legal_context = get_legal_check_context(claim_value, preferred_language)
-
-        t0 = time.perf_counter()
-        raw_answer = await generate_text(f"GREETING: {question}\n\n{legal_context}", max_tokens=512)
-        timing["llm_s"] = round(time.perf_counter() - t0, 3)
-
-        # Store in memory
-        if session_id:
-            from agent.memory import add_message
-            add_message(session_id, "user", question)
-            add_message(session_id, "model", raw_answer)
-
-        return {
-            "answer": raw_answer,
-            "intent": "greeting",
-            "reasoning_steps": [],
-            "verified_citations": [],
-            "citation_confidence": 1.0,
-            "unverified_sections": [],
-            "source_chunks": [],
-            "subfolders_searched": [],
-            "query_expansion": None,
-            "timing": timing,
-            "trace": trace,
-        }
-
-    # ── Handle GENERAL intent (no RAG, just Gemini chat) ──────────────────────
-    if intent == "general":
+    # ── Handle DIRECT intent (no RAG, just Gemini chat) ──────────────────────
+    if intent == "direct":
+        log.info("Pipeline: Using DIRECT path (no database search)...")
         from llm.gemini_client import generate_text, generate_with_history
 
         t0 = time.perf_counter()
@@ -136,10 +109,11 @@ async def run_query(
             raw_answer = await generate_text(question, max_tokens=1024)
 
         timing["llm_s"] = round(time.perf_counter() - t0, 3)
+        log.info(f"Pipeline: DIRECT response generated in {timing['llm_s']}s")
 
         return {
             "answer": raw_answer,
-            "intent": "general",
+            "intent": "direct",
             "reasoning_steps": [],
             "verified_citations": [],
             "citation_confidence": 1.0,
@@ -151,7 +125,8 @@ async def run_query(
             "trace": trace,
         }
 
-    # ── LEGAL intent — Full Agentic RAG Pipeline ──────────────────────────────
+    # ── RAG intent — Full Agentic RAG Pipeline ──────────────────────────────
+    log.info("Pipeline: Using RAG path (starting retrieval flow)...")
 
     # Enrich query with conversational memory if available
     enriched_question = question
@@ -163,6 +138,7 @@ async def run_query(
             trace.append("💬 **Memory** — enriched query with conversation history")
 
     # ── Step 1: Query Expansion ───────────────────────────────────────────────
+    log.info("Step 1: Expanding user query with legal terms...")
     t0 = time.perf_counter()
     from retrieval.query_expansion import expand_query
     expansion = await expand_query(enriched_question, use_llm=use_llm_expansion)
@@ -171,6 +147,7 @@ async def run_query(
     trace.append(f"🔍 **Query expanded** — added legal terms: `{expansion['rule_expanded'][len(enriched_question):].strip()[:120]}`")
 
     # ── Step 2: Metadata Filtering ────────────────────────────────────────────
+    log.info("Step 2: Identifying relevant folders via metadata...")
     t0 = time.perf_counter()
     from retrieval.metadata_filter import filter_subfolders
     subfolders: list[Path] = filter_subfolders(filters, kb_path=KB_PATH, require_indexed=True)
@@ -191,6 +168,7 @@ async def run_query(
     trace.append(f"📁 **Subfolders selected**: {[str(sf.name) for sf in subfolders]}")
 
     # ── Step 3: Hybrid Retrieval (vector + BM25) ──────────────────────────────
+    log.info("Step 3: Performing hybrid retrieval (Vector + BM25)...")
     t0 = time.perf_counter()
     from retrieval.hybrid_search import hybrid_search
     raw_chunks = hybrid_search(search_query, subfolders, top_k=TOP_K_RETRIEVAL)
@@ -210,6 +188,7 @@ async def run_query(
         }
 
     # ── Step 4: Context Compression ───────────────────────────────────────────
+    log.info("Step 4: Compressing context and removing boilerplate...")
     t0 = time.perf_counter()
     from context.compressor import compress
     compressed = compress(raw_chunks)
@@ -217,6 +196,7 @@ async def run_query(
     trace.append(f"🗜️ **Compression** — {len(raw_chunks)} → {len(compressed)} chunks (deduped + cleaned)")
 
     # ── Step 5: Re-ranking (with MMR diversity) ───────────────────────────────
+    log.info("Step 5: Re-ranking chunks for precision and diversity...")
     t0 = time.perf_counter()
     from context.reranker import rerank
     reranked = rerank(question, compressed, top_k=TOP_K_RERANK)
@@ -224,6 +204,7 @@ async def run_query(
     trace.append(f"📊 **Re-ranked + MMR** — top {len(reranked)} diverse chunks selected")
 
     # ── Step 6: Reference Traversal ───────────────────────────────────────────
+    log.info("Step 6: Traversing internal legal citations...")
     t0 = time.perf_counter()
     from context.reference_traversal import traverse_references
     final_chunks = traverse_references(reranked, subfolders)
@@ -253,6 +234,7 @@ async def run_query(
     context_str = "\n\n".join(context_parts) + "\n\n" + legal_context
 
     # ── Step 8: Gemini Reasoning (with memory if available) ───────────────────
+    log.info("Step 8: Generating legal reasoning via Gemini...")
     t0 = time.perf_counter()
     from llm.gemini_client import generate_text, generate_with_history
     from llm.prompts import LEGAL_REASONING_PROMPT
@@ -272,6 +254,7 @@ async def run_query(
     trace.append(f"🤖 **Gemini reasoning** complete ({timing['llm_s']}s)")
 
     # ── Step 9: Citation Verification ────────────────────────────────────────
+    log.info("Step 9: Verifying citations against source documents...")
     from agent.citation import verify_and_annotate
     result = verify_and_annotate(raw_answer, final_chunks)
 

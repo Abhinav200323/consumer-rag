@@ -19,6 +19,7 @@ _CITATION_PATTERNS = [
     re.compile(r"(TRAI.*?Regulations?,?\s*\d{4})", re.IGNORECASE),
     re.compile(r"Chapter\s+([IVXLCM]+|[A-Z]+|\d+)", re.IGNORECASE),
     re.compile(r"Page\s+(\d+)", re.IGNORECASE),
+    re.compile(r"([A-Z][a-zA-Z'.]*\s+(?:v|vs)\.?\s+[A-Z][a-zA-Z'.]*(?:\s+[A-Z][a-zA-Z'.]*)*\s*(?:\(\d{4}\))?)", re.IGNORECASE),
 ]
 
 
@@ -70,13 +71,23 @@ def verify_and_annotate(answer: str, source_chunks: list[dict]) -> dict:
     for pattern in _CITATION_PATTERNS[:1]:  # Section pattern
         claimed_sections.update(pattern.findall(answer))
 
-    # What sections are actually in the source chunks
+    # What sections or cases are actually in the source chunks
     sourced_sections = {c.get("section") for c in source_chunks if c.get("section")}
     sourced_acts = {c.get("act") for c in source_chunks if c.get("act")}
+    
+    # Extract case name claims (X v. Y)
+    case_pattern = _CITATION_PATTERNS[-1]
+    claimed_cases = set(case_pattern.findall(answer))
+            
+    unverified_cases = set()
+    for cc in claimed_cases:
+        # Check if this case name appears in any of our source chunks
+        if not any(cc.lower() in ch["text"].lower() for ch in source_chunks):
+            unverified_cases.add(cc)
 
-    unverified = claimed_sections - sourced_sections
+    unverified = (claimed_sections - sourced_sections) | unverified_cases
     if unverified:
-        log.warning(f"Potentially unverified citations in answer: {unverified}")
+        log.warning(f"Potentially unverified citations/cases in answer: {unverified}")
 
     verified_citations = build_verified_citations(source_chunks)
 
@@ -84,8 +95,9 @@ def verify_and_annotate(answer: str, source_chunks: list[dict]) -> dict:
         "answer": answer,
         "verified_citations": verified_citations,
         "claimed_sections": list(claimed_sections),
+        "claimed_cases": list(claimed_cases),
         "sourced_sections": list(sourced_sections),
         "sourced_acts": list(sourced_acts),
         "unverified_sections": list(unverified),
-        "citation_confidence": 1.0 - (len(unverified) / max(len(claimed_sections), 1)),
+        "citation_confidence": 1.0 - (len(unverified) / max(len(claimed_sections) + len(claimed_cases), 1)),
     }

@@ -25,6 +25,15 @@ if GEMINI_API_KEY:
 else:
     log.warning("GEMINI_API_KEY not set — LLM calls will fail.")
 
+# Legal context often triggers false safety blocks (e.g., discussing "harassment" or "injury")
+# We set all categories to BLOCK_NONE to ensure legal analysis is never interrupted.
+SAFETY_SETTINGS = [
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+]
+
 _model_instance = None
 
 
@@ -34,6 +43,7 @@ def _get_model():
         _model_instance = genai.GenerativeModel(
             model_name=GEMINI_MODEL,
             system_instruction=SYSTEM_PROMPT,
+            safety_settings=SAFETY_SETTINGS,
         )
     return _model_instance
 
@@ -58,7 +68,19 @@ def generate_text_sync(prompt: str, max_tokens: int = 2048, attached_image_b64: 
                 temperature=0.1,   # low temperature for legal accuracy
             ),
         )
-        return response.text
+        if hasattr(response, "usage_metadata"):
+            usage = response.usage_metadata
+            log.info(f"    [GEMINI USAGE] Input: {usage.prompt_token_count} | Output: {usage.candidates_token_count} | Total: {usage.total_token_count}")
+        
+        try:
+            return response.text
+        except ValueError:
+            # If the response was blocked
+            if response.candidates:
+                reason = response.candidates[0].finish_reason
+                log.warning(f"Gemini response blocked. Reason: {reason}")
+                return "I apologize, but I cannot provide an answer to this specific query due to safety filtering. Please try rephrasing."
+            return "Unexpected empty response from model."
     except Exception as e:
         log.error(f"Gemini generation error: {e}")
         raise
@@ -80,6 +102,9 @@ def extract_image_text_sync(image_path: Path) -> str:
             ["Please accurately transcribe all text visible in this image. Do not include external commentary. Ensure every sentence is captured.", img],
              generation_config=genai.GenerationConfig(temperature=0.0)
         )
+        if hasattr(response, "usage_metadata"):
+            usage = response.usage_metadata
+            log.info(f"    [GEMINI OCR USAGE] Input: {usage.prompt_token_count} | Output: {usage.candidates_token_count} | Total: {usage.total_token_count}")
         return response.text
     except Exception as e:
         log.error(f"OCR Generation Error: {e}")
@@ -102,7 +127,17 @@ def generate_with_history(messages: list[dict], max_tokens: int = 2048) -> str:
                 temperature=0.1,
             ),
         )
-        return response.text
+        if hasattr(response, "usage_metadata"):
+            usage = response.usage_metadata
+            log.info(f"    [GEMINI CHAT USAGE] Input: {usage.prompt_token_count} | Output: {usage.candidates_token_count} | Total: {usage.total_token_count}")
+        
+        try:
+            return response.text
+        except ValueError:
+            if response.candidates:
+                log.warning(f"Gemini chat response blocked. Reason: {response.candidates[0].finish_reason}")
+                return "I apologize, but I cannot continue this part of the conversation due to safety filtering. Let's try another topic."
+            return "Unexpected empty response from model."
     except Exception as e:
         log.error(f"Gemini chat error: {e}")
         raise
