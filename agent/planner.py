@@ -241,12 +241,10 @@ async def run_query(
     prompt = LEGAL_REASONING_PROMPT.format(context=context_str, question=question)
 
     if session_id:
-        from agent.memory import get_history, add_message
+        from agent.memory import get_history
         history = get_history(session_id)
         messages = list(history) + [{"role": "user", "parts": [prompt]}]
         raw_answer = generate_with_history(messages, max_tokens=2048)
-        add_message(session_id, "user", question)
-        add_message(session_id, "model", raw_answer)
     else:
         raw_answer = await generate_text(prompt, max_tokens=2048, attached_image_b64=attached_image_b64)
 
@@ -258,8 +256,37 @@ async def run_query(
     from agent.citation import verify_and_annotate
     result = verify_and_annotate(raw_answer, final_chunks)
 
-    # Parse reasoning steps from the structured LLM output
+    # ── Step 10: Self-Correction (Retry if hallucinations detected) ──────────
+    if result["unverified_sections"] and result["citation_confidence"] < 1.0:
+        log.warning(f"Step 10: Hallucinations detected ({result['unverified_sections']}). Triggering self-correction...")
+        trace.append(f"⚠️ **Self-Correction** — unverified citations found: `{result['unverified_sections']}`. Regenerating...")
+        
+        from llm.prompts import CITATION_CORRECTION_PROMPT
+        correction_prompt = CITATION_CORRECTION_PROMPT.format(
+            unverified=", ".join(result["unverified_sections"]),
+            context=context_str,
+            question=question,
+            original_answer=raw_answer
+        )
+        
+        t0_retry = time.perf_counter()
+        # Retry with the correction prompt
+        raw_answer = await generate_text(correction_prompt, max_tokens=2048)
+        timing["llm_retry_s"] = round(time.perf_counter() - t0_retry, 3)
+        trace.append(f"✅ **Self-Correction** complete ({timing['llm_retry_s']}s)")
+        
+        # Re-verify the corrected answer
+        result = verify_and_annotate(raw_answer, final_chunks)
+
+    # Save to memory only after potential self-correction
+    if session_id:
+        from agent.memory import add_message
+        add_message(session_id, "user", question)
+        add_message(session_id, "model", raw_answer)
+
+    # Parse reasoning steps from the final (potentially corrected) LLM output
     reasoning_steps = _parse_reasoning_steps(raw_answer)
+
 
     return {
         "answer": raw_answer,

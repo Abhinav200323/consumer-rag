@@ -1,0 +1,26 @@
+{
+  "domain": "consumer_protection",
+  "subdomain": "constitutional_provisions",
+  "description": "Document 'The Indian Constitution.pdf' covering India as defined in theGovernment of India Act, 1935.",
+  "indexed": true,
+  "last_indexed": "2026-05-02T09:55:11.670705+00:00",
+  "total_chunks": 1445,
+  "total_docs": 1,
+  "acts": [
+    "India as defined in theGovernment of India Act, 1935"
+  ],
+  "doc_types": [
+    "Act"
+  ],
+  "jurisdiction": [
+    "All India"
+  ],
+  "documents": {
+    "The Indian Constitution.pdf": {
+      "title": "The Indian Constitution",
+      "summary": "Document 'The Indian Constitution.pdf' covering India as defined in theGovernment of India Act, 1935.",
+      "document_type": "Act",
+      "key_takeaways": []
+    }
+  }
+}

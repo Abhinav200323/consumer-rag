@@ -1,6 +1,23 @@
 {
   "indexed": true,
-  "last_indexed": "2026-04-12T04:28:53.606648+00:00",
+  "last_indexed": "2026-05-02T09:57:50.580670+00:00",
   "total_chunks": 5,
-  "total_docs": 1
+  "total_docs": 1,
+  "domain": "consumer_protection",
+  "subdomain": "ecommerce_rules",
+  "doc_types": [
+    "Rules"
+  ],
+  "jurisdiction": [
+    "All India"
+  ],
+  "description": "Document 'rules.txt' covering Indian consumer law.",
+  "documents": {
+    "rules.txt": {
+      "title": "Rules.Txt",
+      "summary": "Document 'rules.txt' covering Indian consumer law.",
+      "document_type": "Rules",
+      "key_takeaways": []
+    }
+  }
 }

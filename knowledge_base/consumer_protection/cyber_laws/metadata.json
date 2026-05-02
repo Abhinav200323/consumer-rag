@@ -1,0 +1,23 @@
+{
+  "domain": "consumer_protection",
+  "subdomain": "cyber_laws",
+  "description": "Document 'Information Technology Act, 2000.pdf' covering Indian consumer law.",
+  "indexed": true,
+  "last_indexed": "2026-05-02T09:57:37.721521+00:00",
+  "total_chunks": 363,
+  "total_docs": 1,
+  "doc_types": [
+    "Act"
+  ],
+  "jurisdiction": [
+    "All India"
+  ],
+  "documents": {
+    "Information Technology Act, 2000.pdf": {
+      "title": "Information Technology Act, 2000",
+      "summary": "Document 'Information Technology Act, 2000.pdf' covering Indian consumer law.",
+      "document_type": "Act",
+      "key_takeaways": []
+    }
+  }
+}

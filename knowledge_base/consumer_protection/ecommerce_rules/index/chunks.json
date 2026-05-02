@@ -77,6 +77,19 @@
       4
     ]
   },
-  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
-  "indexed_at": "2026-04-12T04:28:53.606491+00:00"
+  "doc_metadata": {
+    "rules.txt": {
+      "title": "Rules.Txt",
+      "summary": "Document 'rules.txt' covering Indian consumer law.",
+      "document_type": "Rules",
+      "primary_acts": [],
+      "key_sections": [],
+      "jurisdiction": "All India",
+      "key_takeaways": [],
+      "effective_date": null,
+      "extraction_method": "regex_fallback"
+    }
+  },
+  "embedding_model": "BAAI/bge-base-en-v1.5",
+  "indexed_at": "2026-05-02T09:57:50.580508+00:00"
 }

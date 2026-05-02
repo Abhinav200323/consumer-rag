@@ -1,0 +1,35 @@
+{
+  "domain": "consumer_protection",
+  "subdomain": "child_protection_laws",
+  "description": "Document 'The Protection of Children from Sexual Offences Act (POCSO), 2012.pdf' covering This Act may be called the Protection of Children \nfrom Sexual Offences Act,  2012.",
+  "indexed": true,
+  "last_indexed": "2026-05-02T09:54:42.305241+00:00",
+  "total_chunks": 160,
+  "total_docs": 1,
+  "acts": [
+    "This Act may be called the Protection of Children \nfrom Sexual Offences Act,  2012"
+  ],
+  "sections": [
+    "Section 5",
+    "Section 9"
+  ],
+  "key_takeaways": [
+    "Covers 2 sections across 1 act(s)"
+  ],
+  "doc_types": [
+    "Act"
+  ],
+  "jurisdiction": [
+    "All India"
+  ],
+  "documents": {
+    "The Protection of Children from Sexual Offences Act (POCSO), 2012.pdf": {
+      "title": "The Protection Of Children From Sexual Offences Act (Pocso), 2012",
+      "summary": "Document 'The Protection of Children from Sexual Offences Act (POCSO), 2012.pdf' covering This Act may be called the Protection of Children \nfrom Sexual Offences Act,  2012.",
+      "document_type": "Act",
+      "key_takeaways": [
+        "Covers 2 sections across 1 act(s)"
+      ]
+    }
+  }
+}

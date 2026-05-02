@@ -1,0 +1,32 @@
+{
+  "domain": "consumer_protection",
+  "subdomain": "workplace_safety_laws",
+  "description": "Document 'The Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013.pdf' covering Indian consumer law.",
+  "indexed": true,
+  "last_indexed": "2026-05-02T10:00:49.095928+00:00",
+  "total_chunks": 113,
+  "total_docs": 1,
+  "sections": [
+    "Section 7",
+    "Section 5"
+  ],
+  "key_takeaways": [
+    "Covers 2 sections across 0 act(s)"
+  ],
+  "doc_types": [
+    "Act"
+  ],
+  "jurisdiction": [
+    "All India"
+  ],
+  "documents": {
+    "The Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013.pdf": {
+      "title": "The Sexual Harassment Of Women At Workplace (Prevention, Prohibition And Redressal) Act, 2013",
+      "summary": "Document 'The Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013.pdf' covering Indian consumer law.",
+      "document_type": "Act",
+      "key_takeaways": [
+        "Covers 2 sections across 0 act(s)"
+      ]
+    }
+  }
+}

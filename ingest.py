@@ -8,7 +8,8 @@ Processes documents (PDF, DOCX, TXT) from a knowledge_base subfolder, builds:
 
 Usage:
     python ingest.py --path knowledge_base/consumer_protection/general_provisions
-    python ingest.py --all   # re-indexes all subfolders
+    python ingest.py --all    # re-indexes all subfolders
+    python ingest.py --auto   # auto-classify & ingest from inbox/ folder
 """
 
 import argparse
@@ -29,7 +30,7 @@ from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent))
-from config import KB_PATH, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDING_MODEL, GEMINI_API_KEY
+from config import KB_PATH, INBOX_PATH, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDING_MODEL, GEMINI_API_KEY
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
@@ -503,6 +504,214 @@ def find_all_subfolders(kb_path: Path) -> list[Path]:
     return subfolders
 
 
+# ── Auto-Classification (Gemini-powered) ──────────────────────────────────────
+
+SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".png", ".jpg", ".jpeg"}
+CONSUMER_PROTECTION_PATH = KB_PATH / "consumer_protection"
+
+
+def _get_existing_subfolders_info() -> tuple[list[str], str]:
+    """
+    Scan knowledge_base/consumer_protection/ for existing subfolders and
+    build a formatted description string for the classification prompt.
+    Returns (list_of_subfolder_names, formatted_info_string).
+    """
+    subfolders = []
+    info_lines = []
+
+    if not CONSUMER_PROTECTION_PATH.exists():
+        return subfolders, "(No existing subfolders)"
+
+    for entry in sorted(CONSUMER_PROTECTION_PATH.iterdir()):
+        if not entry.is_dir() or entry.name.startswith("."):
+            continue
+        subfolders.append(entry.name)
+
+        # Try to read description from metadata.json
+        meta_path = entry / "metadata.json"
+        desc = "No description available"
+        if meta_path.exists():
+            try:
+                with open(meta_path) as f:
+                    meta = json.load(f)
+                desc = meta.get("description", desc)
+            except Exception:
+                pass
+        info_lines.append(f"- **{entry.name}**: {desc}")
+
+    return subfolders, "\n".join(info_lines) if info_lines else "(No existing subfolders)"
+
+
+def classify_document(file_path: Path) -> dict:
+    """
+    Use Gemini to classify a document into the best consumer_protection subfolder.
+    Reads the first ~4000 chars and asks Gemini to pick or suggest a subfolder.
+    Returns: {"subfolder": str, "is_new": bool, "confidence": float, "reason": str}
+    """
+    # Parse just enough text for classification
+    pages = load_document(file_path)
+    if not pages:
+        log.error(f"Could not parse {file_path.name} — unsupported or empty file")
+        return {"subfolder": "general_provisions", "is_new": False,
+                "confidence": 0.0, "reason": "Unparseable file, defaulting to general_provisions"}
+
+    full_text = "\n".join(p["text"] for p in pages)
+    sample_text = full_text[:4000]
+
+    existing_names, subfolders_info = _get_existing_subfolders_info()
+
+    if not GEMINI_API_KEY:
+        log.warning("No GEMINI_API_KEY — cannot classify. Defaulting to general_provisions.")
+        return {"subfolder": "general_provisions", "is_new": False,
+                "confidence": 0.0, "reason": "No API key for classification"}
+
+    raw = ""
+    for attempt in range(2):  # retry once on failure
+        try:
+            from llm.gemini_client import generate_text_sync
+            from llm.prompts import DOCUMENT_CLASSIFICATION_PROMPT
+
+            prompt = DOCUMENT_CLASSIFICATION_PROMPT.format(
+                subfolders_info=subfolders_info,
+                filename=file_path.name,
+                text=sample_text,
+            )
+            raw = generate_text_sync(prompt, max_tokens=512)
+            log.info(f"   🔍 Gemini raw response: {raw[:300]}")
+
+            # Strategy 1: Try full JSON parse
+            result = _parse_json_response(raw)
+            if result and "subfolder" in result:
+                result["subfolder"] = result["subfolder"].strip().lower().replace(" ", "_")
+                result.setdefault("is_new", result["subfolder"] not in existing_names)
+                result.setdefault("confidence", 0.8)
+                result.setdefault("reason", "Gemini classification")
+                return result
+
+            # Strategy 2: Regex extract "subfolder" value from truncated JSON
+            sf_match = re.search(r'"subfolder"\s*:\s*"([^"]+)"', raw)
+            if sf_match:
+                subfolder_name = sf_match.group(1).strip().lower().replace(" ", "_")
+                log.info(f"   📝 Regex-extracted subfolder from truncated JSON: {subfolder_name}")
+
+                # Also try to extract other fields
+                conf_match = re.search(r'"confidence"\s*:\s*([\d.]+)', raw)
+                reason_match = re.search(r'"reason"\s*:\s*"([^"]*)"', raw)
+                is_new_match = re.search(r'"is_new"\s*:\s*(true|false)', raw, re.IGNORECASE)
+
+                return {
+                    "subfolder": subfolder_name,
+                    "is_new": is_new_match.group(1).lower() == "true" if is_new_match else subfolder_name not in existing_names,
+                    "confidence": float(conf_match.group(1)) if conf_match else 0.7,
+                    "reason": reason_match.group(1) if reason_match else "Extracted from partial Gemini response",
+                }
+
+            if attempt == 0:
+                log.warning(f"   ⚠️ Parse failed for {file_path.name}, retrying...")
+                continue
+
+        except Exception as e:
+            log.error(f"Classification attempt {attempt+1} failed for {file_path.name}: {e}")
+
+    # Final fallback: use general_provisions
+    return {"subfolder": "general_provisions", "is_new": False,
+            "confidence": 0.0, "reason": "Classification failed, defaulting"}
+
+
+def auto_ingest(model: SentenceTransformer):
+    """
+    Auto-ingest pipeline:
+      1. Scan inbox/ for supported documents
+      2. Classify each document via Gemini → pick the right subfolder
+      3. Move document to knowledge_base/consumer_protection/<subfolder>/docs/
+      4. Run full ingestion on all affected subfolders
+    """
+    import shutil
+
+    # Ensure inbox exists
+    INBOX_PATH.mkdir(parents=True, exist_ok=True)
+
+    # Collect supported files from inbox
+    inbox_files = [
+        f for f in INBOX_PATH.iterdir()
+        if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
+    ]
+
+    if not inbox_files:
+        log.info(f"📭 Inbox is empty ({INBOX_PATH}). Nothing to ingest.")
+        return
+
+    log.info(f"\n{'='*60}")
+    log.info(f"📥 Auto-Ingest: Found {len(inbox_files)} document(s) in inbox/")
+    log.info(f"{'='*60}")
+
+    affected_subfolders: set[str] = set()
+
+    for file_path in inbox_files:
+        log.info(f"\n📄 Processing: {file_path.name}")
+
+        # ── Step 1: Classify ──────────────────────────────────────────────
+        result = classify_document(file_path)
+        subfolder_name = result["subfolder"]
+        is_new = result.get("is_new", False)
+        confidence = result.get("confidence", 0.0)
+        reason = result.get("reason", "")
+
+        log.info(f"   🏷️  Classification: {subfolder_name} (confidence: {confidence:.0%})")
+        log.info(f"   💬 Reason: {reason}")
+
+        # ── Step 2: Create subfolder structure if new ─────────────────────
+        target_subfolder = CONSUMER_PROTECTION_PATH / subfolder_name
+        target_docs = target_subfolder / "docs"
+        target_docs.mkdir(parents=True, exist_ok=True)
+
+        if is_new:
+            log.info(f"   🆕 Created new subfolder: consumer_protection/{subfolder_name}/")
+            # Create a minimal metadata.json for the new subfolder
+            meta_path = target_subfolder / "metadata.json"
+            if not meta_path.exists():
+                new_meta = {
+                    "domain": "consumer_protection",
+                    "subdomain": subfolder_name,
+                    "description": reason,
+                    "indexed": False,
+                    "last_indexed": None,
+                }
+                with open(meta_path, "w") as f:
+                    json.dump(new_meta, f, indent=2, ensure_ascii=False)
+
+        # ── Step 3: Move document to target docs/ ─────────────────────────
+        dest_path = target_docs / file_path.name
+
+        # Handle filename conflicts
+        if dest_path.exists():
+            stem = file_path.stem
+            suffix = file_path.suffix
+            counter = 1
+            while dest_path.exists():
+                dest_path = target_docs / f"{stem}_{counter}{suffix}"
+                counter += 1
+            log.info(f"   ⚠️  File already exists, renamed to: {dest_path.name}")
+
+        shutil.move(str(file_path), str(dest_path))
+        log.info(f"   📁 Moved → consumer_protection/{subfolder_name}/docs/{dest_path.name}")
+
+        affected_subfolders.add(subfolder_name)
+
+    # ── Step 4: Re-ingest all affected subfolders ─────────────────────────
+    log.info(f"\n{'='*60}")
+    log.info(f"🔄 Re-indexing {len(affected_subfolders)} affected subfolder(s)...")
+    log.info(f"{'='*60}")
+
+    for sf_name in sorted(affected_subfolders):
+        sf_path = CONSUMER_PROTECTION_PATH / sf_name
+        log.info(f"\n▶ Ingesting: consumer_protection/{sf_name}/")
+        index_subfolder(sf_path, model)
+
+    log.info(f"\n✅ Auto-ingest complete! Processed {len(inbox_files)} document(s) "
+             f"into {len(affected_subfolders)} subfolder(s).")
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main():
@@ -510,12 +719,16 @@ def main():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--path", type=str, help="Path to a specific subfolder to index")
     group.add_argument("--all", action="store_true", help="Index all subfolders in the knowledge base")
+    group.add_argument("--auto", action="store_true",
+                       help="Auto-classify & ingest documents from the inbox/ folder")
     args = parser.parse_args()
 
     log.info(f"Loading embedding model: {EMBEDDING_MODEL}")
     model = SentenceTransformer(EMBEDDING_MODEL)
 
-    if args.all:
+    if args.auto:
+        auto_ingest(model)
+    elif args.all:
         subfolders = find_all_subfolders(KB_PATH)
         if not subfolders:
             log.error(f"No subfolders found in {KB_PATH}")

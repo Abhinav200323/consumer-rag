@@ -1,0 +1,31 @@
+{
+  "domain": "consumer_protection",
+  "subdomain": "motor_vehicle_laws",
+  "description": "Document 'The Motor Vehicles Act, 1988.pdf' covering Indian consumer law.",
+  "indexed": true,
+  "last_indexed": "2026-05-02T10:00:35.422891+00:00",
+  "total_chunks": 1076,
+  "total_docs": 1,
+  "sections": [
+    "Section 53"
+  ],
+  "key_takeaways": [
+    "Covers 1 sections across 0 act(s)"
+  ],
+  "doc_types": [
+    "Act"
+  ],
+  "jurisdiction": [
+    "All India"
+  ],
+  "documents": {
+    "The Motor Vehicles Act, 1988.pdf": {
+      "title": "The Motor Vehicles Act, 1988",
+      "summary": "Document 'The Motor Vehicles Act, 1988.pdf' covering Indian consumer law.",
+      "document_type": "Act",
+      "key_takeaways": [
+        "Covers 1 sections across 0 act(s)"
+      ]
+    }
+  }
+}

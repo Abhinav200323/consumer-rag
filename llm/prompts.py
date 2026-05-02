@@ -107,3 +107,47 @@ Categories:
 User message: {query}
 
 Reply with ONLY one word: rag or direct"""
+
+CITATION_CORRECTION_PROMPT = """You previously provided a legal answer, but it contained hallucinations or unverified citations.
+Specifically, these sections/cases were NOT found in the provided context: {unverified}.
+
+Please rewrite your answer to be 100% accurate. 
+1.  Strictly ground every claim in the context provided below.
+2.  Remove any mention of sections or cases that do not appear in the context.
+3.  Maintain your friendly 'Legal Buddy' tone.
+
+## Context
+{context}
+
+## User Question
+{question}
+
+## Your Previous (Incorrect) Answer
+{original_answer}
+"""
+
+DOCUMENT_CLASSIFICATION_PROMPT = """You are an Indian consumer law document classifier.
+Read the following text from a legal document and classify it into the BEST matching subfolder from the list below.
+
+## Available Subfolders (under consumer_protection/)
+{subfolders_info}
+
+## Document Filename
+{filename}
+
+## Document Text (Sample)
+{text}
+
+## Instructions
+1. Analyze the document's subject matter, Acts referenced, and legal topics covered.
+2. Pick the SINGLE best-matching subfolder from the list above.
+3. If NO existing subfolder fits well, suggest a NEW subfolder name using snake_case (e.g., "unfair_trade_practices").
+4. Return ONLY valid JSON (no markdown fences, no explanation):
+{{
+  "subfolder": "the_subfolder_name",
+  "is_new": false,
+  "confidence": 0.95,
+  "reason": "Brief 1-line reason for this classification"
+}}
+"""
+

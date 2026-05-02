@@ -1,0 +1,31 @@
+{
+  "domain": "consumer_protection",
+  "subdomain": "evidence_laws",
+  "description": "Document 'The Bharatiya Sakshya Adhiniyam, 2023.pdf' covering Indian consumer law.",
+  "indexed": true,
+  "last_indexed": "2026-05-02T09:58:19.694907+00:00",
+  "total_chunks": 450,
+  "total_docs": 1,
+  "sections": [
+    "Section 1"
+  ],
+  "key_takeaways": [
+    "Covers 1 sections across 0 act(s)"
+  ],
+  "doc_types": [
+    "Document"
+  ],
+  "jurisdiction": [
+    "All India"
+  ],
+  "documents": {
+    "The Bharatiya Sakshya Adhiniyam, 2023.pdf": {
+      "title": "The Bharatiya Sakshya Adhiniyam, 2023",
+      "summary": "Document 'The Bharatiya Sakshya Adhiniyam, 2023.pdf' covering Indian consumer law.",
+      "document_type": "Document",
+      "key_takeaways": [
+        "Covers 1 sections across 0 act(s)"
+      ]
+    }
+  }
+}

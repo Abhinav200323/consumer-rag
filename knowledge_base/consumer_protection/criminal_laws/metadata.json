@@ -1,0 +1,41 @@
+{
+  "domain": "consumer_protection",
+  "subdomain": "criminal_laws",
+  "description": "Document 'The Bharatiya Nyaya Sanhita, 2023.pdf' covering Indian consumer law. | Document 'The Bharatiya Nagarik Suraksha Sanhita, 2023.pdf' covering Indian consumer law.",
+  "indexed": true,
+  "last_indexed": "2026-05-02T09:57:21.174877+00:00",
+  "total_chunks": 3275,
+  "total_docs": 2,
+  "sections": [
+    "Section 1"
+  ],
+  "key_takeaways": [
+    "Covers 1 sections across 0 act(s)",
+    "Covers 1 sections across 0 act(s)"
+  ],
+  "doc_types": [
+    "Notification",
+    "Document"
+  ],
+  "jurisdiction": [
+    "All India"
+  ],
+  "documents": {
+    "The Bharatiya Nyaya Sanhita, 2023.pdf": {
+      "title": "The Bharatiya Nyaya Sanhita, 2023",
+      "summary": "Document 'The Bharatiya Nyaya Sanhita, 2023.pdf' covering Indian consumer law.",
+      "document_type": "Notification",
+      "key_takeaways": [
+        "Covers 1 sections across 0 act(s)"
+      ]
+    },
+    "The Bharatiya Nagarik Suraksha Sanhita, 2023.pdf": {
+      "title": "The Bharatiya Nagarik Suraksha Sanhita, 2023",
+      "summary": "Document 'The Bharatiya Nagarik Suraksha Sanhita, 2023.pdf' covering Indian consumer law.",
+      "document_type": "Document",
+      "key_takeaways": [
+        "Covers 1 sections across 0 act(s)"
+      ]
+    }
+  }
+}

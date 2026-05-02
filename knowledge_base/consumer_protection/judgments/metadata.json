@@ -1,6 +1,116 @@
 {
   "indexed": true,
-  "last_indexed": "2026-04-12T04:28:53.986891+00:00",
-  "total_chunks": 5,
-  "total_docs": 1
+  "last_indexed": "2026-05-02T10:00:10.305579+00:00",
+  "total_chunks": 616,
+  "total_docs": 8,
+  "domain": "consumer_protection",
+  "subdomain": "judgments",
+  "acts": [
+    "Consumer Protection Act",
+    "Consumer Protection Act 1986",
+    "Civil Aviation Requirements (CAR)",
+    "Phonepe Private Limited is a company\nincorporated under the Companies Act, 1956",
+    "The petitioner further avers in the petition that it is only an\nintermediary as defined under the Information Technology Act,\n2000",
+    "Payment and Settlement System Act,\n2007",
+    "The petitioner is\ngoverned under the Payment and Settlement Systems Act, 2007",
+    "The Bankers Books Evidence Act, 1891"
+  ],
+  "doc_types": [
+    "Judgment",
+    "Document",
+    "Act"
+  ],
+  "jurisdiction": [
+    "All India",
+    "State"
+  ],
+  "description": "Document 'landmark_judgments.txt' covering Consumer Protection Act. | Document 'banking_1.PDF' covering Indian consumer law. | Document 'property_judgement.pdf' covering Consumer Protection Act. | This is a legal judgment involving a homebuyer who sued a builder for failing to deliver a flat on time in Ghaziabad. The State Consumer Commission addressed the buyer's request for a refund after significant delays in the construction project. | This case deals with a consumer's right to a full refund for international flight tickets booked through an online platform (Make My Trip) after the airline (Jet Airways) cancelled the flights. The court examined whether the booking agent or the airline is liable for the refund, especially when the airline faces bankruptcy. | Document 'Flipkart return conflict.pdf' covering Consumer Protection Act. | Document 'Phonepe_Private_Limited_vs_State_Of_Karnataka_on_29_April_2025-1.PDF' covering Phonepe Private Limited is a company\nincorporated under the Companies Act, 1956, The petitioner further avers in the petition that it is only an\nintermediary as defined under the Information Technology Act,\n2000. | Document 'banking.PDF' covering Indian consumer law.",
+  "documents": {
+    "landmark_judgments.txt": {
+      "title": "Landmark Judgments.Txt",
+      "summary": "Document 'landmark_judgments.txt' covering Consumer Protection Act.",
+      "document_type": "Judgment",
+      "key_takeaways": []
+    },
+    "banking_1.PDF": {
+      "title": "Banking 1.Pdf",
+      "summary": "Document 'banking_1.PDF' covering Indian consumer law.",
+      "document_type": "Document",
+      "key_takeaways": []
+    },
+    "property_judgement.pdf": {
+      "title": "Property Judgement",
+      "summary": "Document 'property_judgement.pdf' covering Consumer Protection Act.",
+      "document_type": "Act",
+      "key_takeaways": [
+        "Covers 2 sections across 1 act(s)"
+      ]
+    },
+    "builder conflict 2.PDF": {
+      "title": "Smt. Amita Sharma vs M/S BCC Infrastructures Ltd (Consumer Refund Case)",
+      "summary": "This is a legal judgment involving a homebuyer who sued a builder for failing to deliver a flat on time in Ghaziabad. The State Consumer Commission addressed the buyer's request for a refund after significant delays in the construction project.",
+      "document_type": "Judgment",
+      "key_takeaways": [
+        "Homebuyers can file a complaint with the State Consumer Commission if a builder fails to provide possession of a property within the agreed timeframe.",
+        "Consumers are entitled to seek a refund of their deposited amount if the developer significantly delays the project.",
+        "The court recognizes 'deficiency in service' when a builder collects a large portion of the payment but fails to complete the construction.",
+        "Maintaining records of all payments, allotment letters, and correspondence with the builder is essential for a successful legal claim."
+      ]
+    },
+    "Make_My_Trip_India_Pvt_Ltd_vs_Damodar_Shriniwas_Prabhu_on_18_January_2023.PDF": {
+      "title": "Make My Trip India Pvt. Ltd. vs. Damodar Shriniwas Prabhu (2023) - Refund for Cancelled Flight Tickets",
+      "summary": "This case deals with a consumer's right to a full refund for international flight tickets booked through an online platform (Make My Trip) after the airline (Jet Airways) cancelled the flights. The court examined whether the booking agent or the airline is liable for the refund, especially when the airline faces bankruptcy.",
+      "document_type": "Judgment",
+      "key_takeaways": [
+        "Online travel agents often claim they are only 'facilitators' and that the airline is solely responsible for refunds.",
+        "According to DGCA guidelines, the obligation to refund ticket amounts for cancelled flights primarily rests with the concerned airline.",
+        "If an airline enters bankruptcy proceedings (NCLT), refund claims may be managed by an Interim Resolution Professional (IRP).",
+        "Consumers can seek relief through Consumer Commissions if they do not receive a full refund for services they paid for but did not receive."
+      ]
+    },
+    "Flipkart return conflict.pdf": {
+      "title": "Flipkart Return Conflict",
+      "summary": "Document 'Flipkart return conflict.pdf' covering Consumer Protection Act.",
+      "document_type": "Act",
+      "key_takeaways": [
+        "Covers 1 sections across 1 act(s)"
+      ]
+    },
+    "Phonepe_Private_Limited_vs_State_Of_Karnataka_on_29_April_2025-1.PDF": {
+      "title": "Phonepe Private Limited Vs State Of Karnataka On 29 April 2025-1.Pdf",
+      "summary": "Document 'Phonepe_Private_Limited_vs_State_Of_Karnataka_on_29_April_2025-1.PDF' covering Phonepe Private Limited is a company\nincorporated under the Companies Act, 1956, The petitioner further avers in the petition that it is only an\nintermediary as defined under the Information Technology Act,\n2000.",
+      "document_type": "Act",
+      "key_takeaways": [
+        "Covers 2 sections across 6 act(s)"
+      ]
+    },
+    "banking.PDF": {
+      "title": "Banking.Pdf",
+      "summary": "Document 'banking.PDF' covering Indian consumer law.",
+      "document_type": "Document",
+      "key_takeaways": []
+    }
+  },
+  "sections": [
+    "Section 67",
+    "Section 2",
+    "Section 12",
+    "Section-3, Series-M, Part-II of DGCA CAR dated 22/05/2008",
+    "Section 18",
+    "Section 91",
+    "Section 79"
+  ],
+  "key_takeaways": [
+    "Covers 2 sections across 1 act(s)",
+    "Homebuyers can file a complaint with the State Consumer Commission if a builder fails to provide possession of a property within the agreed timeframe.",
+    "Consumers are entitled to seek a refund of their deposited amount if the developer significantly delays the project.",
+    "The court recognizes 'deficiency in service' when a builder collects a large portion of the payment but fails to complete the construction.",
+    "Maintaining records of all payments, allotment letters, and correspondence with the builder is essential for a successful legal claim.",
+    "Online travel agents often claim they are only 'facilitators' and that the airline is solely responsible for refunds.",
+    "According to DGCA guidelines, the obligation to refund ticket amounts for cancelled flights primarily rests with the concerned airline.",
+    "If an airline enters bankruptcy proceedings (NCLT), refund claims may be managed by an Interim Resolution Professional (IRP).",
+    "Consumers can seek relief through Consumer Commissions if they do not receive a full refund for services they paid for but did not receive.",
+    "Covers 1 sections across 1 act(s)",
+    "Covers 2 sections across 6 act(s)"
+  ]
 }

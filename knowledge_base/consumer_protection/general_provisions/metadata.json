@@ -2,19 +2,18 @@
   "domain": "consumer_protection",
   "subdomain": "general_provisions",
   "indexed": true,
-  "last_indexed": "2026-04-23T19:12:54.621224+00:00",
-  "total_chunks": 58,
+  "last_indexed": "2026-05-02T09:58:34.561804+00:00",
+  "total_chunks": 335,
   "total_docs": 1,
   "acts": [
-    "B  of the Indian Telegraph Act, 1885",
-    "Consumer Protection Act",
-    "Indian Telegraph Act, 1885"
+    "This Act may be called the Consumer Protection Act, 2019"
   ],
   "sections": [
-    "Section 7B"
+    "Section 1",
+    "Section 10"
   ],
   "key_takeaways": [
-    "Covers 1 sections across 3 act(s)"
+    "Covers 2 sections across 1 act(s)"
   ],
   "doc_types": [
     "Act"
@@ -22,14 +21,14 @@
   "jurisdiction": [
     "All India"
   ],
-  "description": "Document 'indian consumer.pdf' covering B  of the Indian Telegraph Act, 1885, Consumer Protection Act.",
+  "description": "Document '📦 The Consumer Protection Act, 2019.pdf' covering This Act may be called the Consumer Protection Act, 2019.",
   "documents": {
-    "indian consumer.pdf": {
-      "title": "Indian Consumer",
-      "summary": "Document 'indian consumer.pdf' covering B  of the Indian Telegraph Act, 1885, Consumer Protection Act.",
+    "📦 The Consumer Protection Act, 2019.pdf": {
+      "title": "📦 The Consumer Protection Act, 2019",
+      "summary": "Document '📦 The Consumer Protection Act, 2019.pdf' covering This Act may be called the Consumer Protection Act, 2019.",
       "document_type": "Act",
       "key_takeaways": [
-        "Covers 1 sections across 3 act(s)"
+        "Covers 2 sections across 1 act(s)"
       ]
     }
   }
