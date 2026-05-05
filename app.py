@@ -20,9 +20,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from config import KB_PATH, BACKEND_PORT
+from database import engine
+import models
+import auth
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
+
+# Initialize DB
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Consumer Law Agentic RAG API",
@@ -36,6 +42,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
 
 # ── Pydantic Models ───────────────────────────────────────────────────────────
@@ -184,7 +192,7 @@ async def draft_document(request: DraftRequest):
     """
     Generate a legal document draft using Gemini.
     """
-    from llm.gemini_client import generate_text
+    from llm.gemini_client import generate_draft_text
     from llm.prompts import DOCUMENT_DRAFTING_PROMPT
     
     if not request.facts.strip() or not request.document_type.strip():
@@ -195,7 +203,7 @@ async def draft_document(request: DraftRequest):
             document_type=request.document_type,
             facts=request.facts
         )
-        draft = await generate_text(prompt, max_tokens=2048)
+        draft = await generate_draft_text(prompt, max_tokens=2048)
         return {"status": "success", "draft": draft}
     except Exception as e:
         log.exception("Draft generation error")

@@ -65,9 +65,9 @@ A user has requested a draft legal document based on their specific situation.
 {facts}
 
 ## Instructions
-1. Output a formal, structured legal draft appropriate for India (e.g., Notice under the Consumer Protection Act, 2019, or a formatted Complaint to a District Consumer Disputes Redressal Commission).
-2. ONLY include the drafted document text. Do not provide disclaimers or explanations before or after the draft.
-3. Use bracketed placeholders like [Your Name], [Opposite Party Address], or [Date] for any information not explicitly provided in the facts.
+1. Output a formal, structured legal draft in a ready-to-use LETTER FORMAT appropriate for India (e.g., Notice under the Consumer Protection Act, 2019, or a formatted Complaint to a District Consumer Disputes Redressal Commission).
+2. ONLY include the drafted document text. Do NOT ask any follow-up questions. Do not provide disclaimers, conversational greetings, or explanations before or after the draft.
+3. Use bracketed placeholders like [Your Name], [Opposite Party Address], or [Date] for ANY information not explicitly provided in the facts. Do not refuse to draft due to missing facts; just use placeholders.
 4. Ensure the draft maintains a firm but professional legal tone, citing relevant Indian legal provisions if conceptually applicable based on standard consumer law.
 5. Provide the output in clean Markdown.
 """

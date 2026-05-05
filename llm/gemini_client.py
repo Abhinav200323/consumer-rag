@@ -48,6 +48,18 @@ def _get_model():
     return _model_instance
 
 
+_drafting_model_instance = None
+
+def _get_drafting_model():
+    global _drafting_model_instance
+    if _drafting_model_instance is None:
+        _drafting_model_instance = genai.GenerativeModel(
+            model_name=GEMINI_MODEL,
+            safety_settings=SAFETY_SETTINGS,
+        )
+    return _drafting_model_instance
+
+
 def generate_text_sync(prompt: str, max_tokens: int = 2048, attached_image_b64: str | None = None) -> str:
     """Synchronous text generation via Gemini."""
     try:
@@ -91,6 +103,37 @@ async def generate_text(prompt: str, max_tokens: int = 2048, attached_image_b64:
     import asyncio
     return await asyncio.get_event_loop().run_in_executor(
         None, lambda: generate_text_sync(prompt, max_tokens, attached_image_b64)
+    )
+
+def generate_draft_text_sync(prompt: str, max_tokens: int = 2048) -> str:
+    """Synchronous text generation specifically for drafting via Gemini."""
+    try:
+        model = _get_drafting_model()
+        response = model.generate_content(
+            [prompt],
+            generation_config=genai.GenerationConfig(
+                max_output_tokens=max_tokens,
+                temperature=0.1,
+            ),
+        )
+        if hasattr(response, "usage_metadata"):
+            usage = response.usage_metadata
+            log.info(f"    [GEMINI DRAFT USAGE] Input: {usage.prompt_token_count} | Output: {usage.candidates_token_count} | Total: {usage.total_token_count}")
+        try:
+            return response.text
+        except ValueError:
+            if response.candidates:
+                return "Draft generation blocked due to safety filtering."
+            return "Unexpected empty response from model."
+    except Exception as e:
+        log.error(f"Gemini drafting error: {e}")
+        raise
+
+async def generate_draft_text(prompt: str, max_tokens: int = 2048) -> str:
+    """Async text generation specifically for drafting via Gemini."""
+    import asyncio
+    return await asyncio.get_event_loop().run_in_executor(
+        None, lambda: generate_draft_text_sync(prompt, max_tokens)
     )
     
 def extract_image_text_sync(image_path: Path) -> str:
