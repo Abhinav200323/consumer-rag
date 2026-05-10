@@ -38,7 +38,13 @@ function Auth() {
       
       localStorage.setItem('lex_token', data.access_token);
       localStorage.setItem('lex_user', JSON.stringify(data));
-      navigate('/dashboard');
+      
+      if (data.role === 'lawyer') {
+        navigate('/inbox');
+      } else {
+        navigate('/dashboard');
+      }
+      
       // trigger page reload to update navbar state
       window.location.reload();
     } catch (err) {
@@ -117,8 +123,12 @@ function Auth() {
           </button>
         </form>
         
-        <p className="text-center" style={{ marginTop: '1.5rem', cursor: 'pointer', color: 'var(--accent-primary)' }} onClick={() => setIsLogin(!isLogin)}>
-          {isLogin ? "Don't have an account? Sign up" : "Already have an account? Login"}
+        <p className="text-center" style={{ marginTop: '1.5rem', cursor: 'pointer' }} onClick={() => setIsLogin(!isLogin)}>
+          {isLogin ? (
+            <>Don't have an account? <span className="highlight-link">Sign up</span></>
+          ) : (
+            <>Already have an account? <span className="highlight-link">Login</span></>
+          )}
         </p>
       </div>
     </div>

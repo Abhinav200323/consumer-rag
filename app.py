@@ -17,7 +17,10 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+import io
+from docx import Document
 
 from config import KB_PATH, BACKEND_PORT
 from database import engine
@@ -57,6 +60,7 @@ class QueryFilters(BaseModel):
     date_to: Optional[str] = None
     query_domains: Optional[list[str]] = None
     session_id: Optional[str] = None
+    conversation_id: Optional[int] = None
 
 
 class QueryRequest(BaseModel):
@@ -95,7 +99,14 @@ async def query(request: QueryRequest):
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
     from agent.planner import run_query
+    from database import SessionLocal
+    from models import Conversation, ConversationMessage
+    import auth
+
     try:
+        # Get user if token is provided
+        # (This is a simplified version, in real app we'd use a dependency)
+        
         result = await run_query(
             question=request.query,
             filters=request.filters.model_dump(exclude_none=True),
@@ -104,7 +115,24 @@ async def query(request: QueryRequest):
             claim_value=request.claim_value,
             preferred_language=request.preferred_language,
             session_id=request.filters.session_id,
+            conversation_id=request.filters.conversation_id,
         )
+
+        # Save to persistent DB if conversation_id exists
+        if request.filters.conversation_id:
+            with SessionLocal() as db:
+                # Save user message
+                db.add(ConversationMessage(conversation_id=request.filters.conversation_id, role="user", content=request.query))
+                # Save assistant message
+                db.add(ConversationMessage(conversation_id=request.filters.conversation_id, role="assistant", content=result["answer"]))
+                
+                # Update title if it's still default
+                conv = db.query(Conversation).filter(Conversation.id == request.filters.conversation_id).first()
+                if conv and conv.title == "New Chat":
+                    conv.title = request.query[:40] + ("..." if len(request.query) > 40 else "")
+                
+                db.commit()
+
         return result
     except Exception as e:
         log.exception("Query pipeline error")
@@ -208,6 +236,39 @@ async def draft_document(request: DraftRequest):
     except Exception as e:
         log.exception("Draft generation error")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/download_draft")
+async def download_draft(request: dict):
+    """
+    Convert a markdown/text draft into a downloadable .docx file.
+    """
+    content = request.get("content", "")
+    if not content:
+        raise HTTPException(status_code=400, detail="No content provided")
+
+    # Create a docx in memory
+    doc = Document()
+    doc.add_heading('Legal Document Draft', 0)
+    
+    # Simple parsing: split by lines and add to doc
+    for line in content.split('\n'):
+        if line.startswith('# '):
+            doc.add_heading(line[2:], level=1)
+        elif line.startswith('## '):
+            doc.add_heading(line[3:], level=2)
+        else:
+            doc.add_paragraph(line)
+
+    file_stream = io.BytesIO()
+    doc.save(file_stream)
+    file_stream.seek(0)
+
+    return StreamingResponse(
+        file_stream,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": "attachment; filename=legal_draft.docx"}
+    )
 
 
 @app.get("/knowledge-base")

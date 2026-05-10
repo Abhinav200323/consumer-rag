@@ -73,6 +73,7 @@ async def run_query(
     claim_value: float = 0,
     preferred_language: str = "English",
     session_id: str | None = None,
+    conversation_id: int | None = None,
 ) -> dict[str, Any]:
     """
     Full agentic RAG pipeline with smart intent routing.
@@ -97,7 +98,14 @@ async def run_query(
         from llm.gemini_client import generate_text, generate_with_history
 
         t0 = time.perf_counter()
-        if session_id:
+        if conversation_id:
+            from database import SessionLocal
+            from models import ConversationMessage
+            with SessionLocal() as db:
+                msgs = db.query(ConversationMessage).filter(ConversationMessage.conversation_id == conversation_id).order_by(ConversationMessage.timestamp.asc()).all()
+                history = [{"role": m.role, "parts": [m.content]} for m in msgs]
+            raw_answer = generate_with_history(history + [{"role": "user", "parts": [question]}], max_tokens=1024)
+        elif session_id:
             from agent.memory import get_history, add_message
             history = get_history(session_id)
             # Build messages list for multi-turn
@@ -240,13 +248,20 @@ async def run_query(
     from llm.prompts import LEGAL_REASONING_PROMPT
     prompt = LEGAL_REASONING_PROMPT.format(context=context_str, question=question)
 
-    if session_id:
+    if conversation_id:
+        from database import SessionLocal
+        from models import ConversationMessage
+        with SessionLocal() as db:
+            msgs = db.query(ConversationMessage).filter(ConversationMessage.conversation_id == conversation_id).order_by(ConversationMessage.timestamp.asc()).all()
+            history = [{"role": m.role, "parts": [m.content]} for m in msgs]
+        raw_answer = generate_with_history(history + [{"role": "user", "parts": [prompt]}], max_tokens=3072)
+    elif session_id:
         from agent.memory import get_history
         history = get_history(session_id)
         messages = list(history) + [{"role": "user", "parts": [prompt]}]
-        raw_answer = generate_with_history(messages, max_tokens=2048)
+        raw_answer = generate_with_history(messages, max_tokens=3072)
     else:
-        raw_answer = await generate_text(prompt, max_tokens=2048, attached_image_b64=attached_image_b64)
+        raw_answer = await generate_text(prompt, max_tokens=3072, attached_image_b64=attached_image_b64)
 
     timing["llm_s"] = round(time.perf_counter() - t0, 3)
     trace.append(f"🤖 **Gemini reasoning** complete ({timing['llm_s']}s)")

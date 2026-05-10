@@ -56,7 +56,7 @@ def get_context_summary(session_id: str) -> str:
         return ""
 
     # Take last 4 messages (2 exchanges) for context
-    recent = history[-4:]
+    recent = history[-6:]
     parts = []
     for msg in recent:
         role_label = "User" if msg["role"] == "user" else "AI"

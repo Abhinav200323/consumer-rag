@@ -9,7 +9,7 @@ import jwt
 import bcrypt
 
 from database import get_db
-from models import User, Message
+from models import User, Message, Conversation, ConversationMessage
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -185,3 +185,55 @@ def get_conversation(other_user_id: int, db: Session = Depends(get_db), current_
         )
     ).order_by(Message.timestamp.asc()).all()
     return messages
+
+# --- Conversation (RAG Chat) Endpoints ---
+
+class ConversationResponse(BaseModel):
+    id: int
+    title: str
+    created_at: datetime
+    expires_at: Optional[datetime]
+
+class ConversationDetail(ConversationResponse):
+    messages: List[dict]
+
+@router.get("/conversations", response_model=List[ConversationResponse])
+def list_conversations(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Also clean up expired conversations
+    now = datetime.utcnow()
+    db.query(Conversation).filter(Conversation.expires_at < now).delete()
+    db.commit()
+    
+    return db.query(Conversation).filter(Conversation.user_id == current_user.id).order_by(Conversation.created_at.desc()).all()
+
+@router.post("/conversations", response_model=ConversationResponse)
+def create_conversation(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    expires_at = datetime.utcnow() + timedelta(days=current_user.chat_retention_days)
+    new_conv = Conversation(user_id=current_user.id, expires_at=expires_at)
+    db.add(new_conv)
+    db.commit()
+    db.refresh(new_conv)
+    return new_conv
+
+@router.get("/conversations/{conv_id}", response_model=ConversationDetail)
+def get_conversation_history(conv_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    conv = db.query(Conversation).filter(Conversation.id == conv_id, Conversation.user_id == current_user.id).first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    msgs = db.query(ConversationMessage).filter(ConversationMessage.conversation_id == conv_id).order_by(ConversationMessage.timestamp.asc()).all()
+    return {
+        "id": conv.id,
+        "title": conv.title,
+        "created_at": conv.created_at,
+        "expires_at": conv.expires_at,
+        "messages": [{"role": m.role, "content": m.content, "timestamp": m.timestamp} for m in msgs]
+    }
+
+@router.post("/settings/retention")
+def update_retention(days: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if days < 1 or days > 7:
+        raise HTTPException(status_code=400, detail="Retention must be between 1 and 7 days")
+    current_user.chat_retention_days = days
+    db.commit()
+    return {"status": "success", "days": days}

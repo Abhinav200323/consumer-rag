@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from datetime import datetime
 from database import Base
